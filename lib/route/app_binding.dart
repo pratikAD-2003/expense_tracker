@@ -1,3 +1,5 @@
+import 'package:expense_tracker/ui/add_transaction/add_transaction_screen.dart';
+import 'package:expense_tracker/ui/analytics/analytics_screen.dart';
 import 'package:get/get.dart';
 
 import '../binding.dart';
@@ -11,6 +13,16 @@ class AppBinding {
       name: AppRoutes.homeScreen,
       page: () => HomeScreen(),
       binding: HomeBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.analyticsScreen,
+      page: () => AnalyticsScreen(),
+      binding: AnalyticsBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.addTransactionScreen,
+      page: () => AddTransactionScreen(),
+      binding: AddTransactionBinding(),
     ),
     GetPage(
       name: AppRoutes.bottomNavScreen,

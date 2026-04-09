@@ -1,5 +1,7 @@
-import 'package:expense_tracker/services/permission/permission_dialog.dart';
+import 'package:expense_tracker/utils/my_theme.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
@@ -7,217 +9,444 @@ import 'home_controller.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
+
   final controller = Get.put(HomeController());
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Expense Tracker"),
-        actions: [
-          IconButton(
-            onPressed: () => Get.to(() => PermissionDialog()),
-            icon: const Icon(Icons.security),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        height: double.infinity,
+        width: double.infinity,
+        decoration: BoxDecoration(gradient: MyTheme.bkgGradient),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _header(),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      SizedBox(height: 10.h),
+                      _tabBar(),
+                      SizedBox(height: 20.h),
+                      _statsWidget(),
+                      SizedBox(height: 20.h),
+                      WeeklyExpenseBarChart(),
+                      SizedBox(height: 30.h),
+                      _recentTransactions(),
+                      SizedBox(height: 80.h),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          IconButton(
-            onPressed: controller.fetchTransactions,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        return Column(
-          children: [
-            _buildSummaryCard(),
-            Expanded(
-              child: controller.transactions.isEmpty
-                  ? _buildEmptyState()
-                  : _buildTransactionList(),
-            ),
-          ],
-        );
-      }),
-    );
-  }
-
-  Widget _buildSummaryCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.05),
-        border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.2))),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _summaryItem(
-              "Spent",
-              "₹${controller.totalSpent.value.toStringAsFixed(2)}",
-              Colors.red,
-            ),
-          ),
-          Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.3)),
-          Expanded(
-            child: _summaryItem(
-              "Received",
-              "₹${controller.totalReceived.value.toStringAsFixed(2)}",
-              Colors.green,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryItem(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 4),
+      ),
+    );
+  }
+
+  Widget _header() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(15.w, 10.h, 15.w, 10.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _headerAction(Icons.settings_outlined),
+          Text(
+            DateFormat('EEE, d MMM yyyy').format(DateTime.now()),
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: MyTheme.textPrimary,
+            ),
+          ),
+          _headerAction(Icons.notifications_none_rounded),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerAction(IconData icon) {
+    return Container(
+      padding: EdgeInsets.all(10.w),
+      decoration: MyTheme.cardDecoration.copyWith(
+        borderRadius: BorderRadius.circular(14.r),
+      ),
+      child: Icon(icon, color: MyTheme.textSecondary, size: 24.w),
+    );
+  }
+
+  Widget _tabBar() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 30.w),
+      padding: EdgeInsets.all(5.w),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(30.r),
+      ),
+      child: Obx(
+        () => Row(
+          children: controller.periods.map((period) {
+            bool isSelected = controller.selectedPeriod.value == period;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => controller.changePeriod(period),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                  decoration: BoxDecoration(
+                    color: isSelected ? MyTheme.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(25.r),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: MyTheme.primary.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: Center(
+                    child: Text(
+                      period,
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : MyTheme.textSecondary,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.w600,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _statsWidget() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Obx(
+          () => Text(
+            "This ${controller.selectedPeriod.value} Spend",
+            style: TextStyle(
+              fontSize: 15.sp,
+              color: MyTheme.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        SizedBox(height: 10.h),
+        Obx(
+          () => Text(
+            "₹${controller.totalSpent.value.toStringAsFixed(2)}",
+            style: TextStyle(
+              fontSize: 36.sp,
+              fontWeight: FontWeight.bold,
+              color: MyTheme.textPrimary,
+            ),
+          ),
+        ),
+        SizedBox(height: 10.h),
         Text(
-          value,
-          style: TextStyle(fontSize: 18, color: color, fontWeight: FontWeight.bold),
+          "67% below last month",
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF10B981),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
-          const Text(
-            "No transactions found",
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            onPressed: controller.fetchTransactions,
-            child: const Text("Refresh"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionList() {
-    return ListView.builder(
-      itemCount: controller.transactions.length,
-      itemBuilder: (context, index) {
-        final tx = controller.transactions[index];
-        final DateTime date = DateTime.fromMillisecondsSinceEpoch(tx['time'] ?? 0);
-        final String formattedDate = DateFormat('dd MMM, hh:mm a').format(date);
-
-        final String type = (tx['type'] ?? 'debit').toString().toLowerCase();
-        final bool isCredit = type == 'credit';
-        final double amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-        final String? merchant = tx['merchant'];
-        final String? category = tx['category'];
-        final String? account = tx['account'];
-        final double? balance = (tx['balance'] as num?)?.toDouble();
-
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ExpansionTile(
-            leading: CircleAvatar(
-              backgroundColor: isCredit ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-              child: Icon(
-                isCredit ? Icons.add : Icons.remove,
-                color: isCredit ? Colors.green : Colors.red,
-              ),
-            ),
-            title: Text(
-              "₹$amount",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: isCredit ? Colors.green[700] : Colors.red[700],
-              ),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  merchant ?? tx['sender'] ?? "Unknown",
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-                Row(
-                  children: [
-                    if (category != null && category != "Others") ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          category.toUpperCase(),
-                          style: const TextStyle(fontSize: 10, color: Colors.blue),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    Text(
-                      formattedDate,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            trailing: IconButton(
-              icon: const Icon(Icons.check_circle_outline, color: Colors.blue),
-              onPressed: () => controller.markAsSynced(tx['id']),
-            ),
+  Widget _recentTransactions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 15.w),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (account != null) _detailRow("Account", "XXXX $account"),
-                    if (balance != null) _detailRow("Closing Balance", "₹$balance"),
-                    _detailRow("Sender", tx['sender'] ?? "N/A"),
-                    const SizedBox(height: 8),
-                    const Text("Raw SMS Message:",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-                    const SizedBox(height: 4),
-                    Text(
-                      tx['message'] ?? "",
-                      style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-                    ),
-                  ],
+              Text(
+                "Recent Transactions",
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  color: MyTheme.textPrimary,
+                ),
+              ),
+              IconButton(
+                onPressed: () {},
+                icon: Text(
+                  "See All",
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    color: MyTheme.primary,
+                    decoration: TextDecoration.underline,
+                    decorationColor: MyTheme.primary,
+                  ),
                 ),
               ),
             ],
           ),
-        );
-      },
+        ),
+        SizedBox(height: 0.h),
+        Obx(
+          () => ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 5.h),
+            itemCount: controller.transactions.length,
+            separatorBuilder: (context, index) => SizedBox(height: 12.h),
+            itemBuilder: (context, index) {
+              final tx = controller.transactions[index];
+              return _transactionItem(tx);
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
+  Widget _transactionItem(Map tx) {
+    final bool isDebit = tx['type'].toString().toLowerCase() == 'debit';
+    final amount = tx['amount']?.toString() ?? "0.0";
+    final date = DateTime.fromMillisecondsSinceEpoch(tx['time'] as int);
+    final formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(date);
+
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: MyTheme.cardDecoration,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          Text(value, style: const TextStyle(fontSize: 13)),
+          Container(
+            height: 48.w,
+            width: 48.w,
+            decoration: BoxDecoration(
+              color: MyTheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Icon(
+              _getCategoryIcon(tx['category'] ?? ''),
+              color: MyTheme.primary,
+              size: 24.w,
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tx['merchant'] ?? tx['sender'] ?? "Unknown",
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.bold,
+                    color: MyTheme.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  formattedDate,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
+                    color: MyTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            "${isDebit ? '-' : '+'} ₹$amount",
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: isDebit ? Colors.redAccent : Colors.green,
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'food':
+        return Icons.restaurant_rounded;
+      case 'shopping':
+        return Icons.shopping_bag_rounded;
+      case 'transport':
+        return Icons.directions_bus_rounded;
+      case 'entertainment':
+        return Icons.movie_rounded;
+      case 'health':
+        return Icons.medical_services_rounded;
+      case 'bills':
+        return Icons.receipt_long_rounded;
+      default:
+        return Icons.payment_rounded;
+    }
+  }
+}
+
+class WeeklyExpenseBarChart extends StatelessWidget {
+  const WeeklyExpenseBarChart({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 15.w),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Weekly Analytics",
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  color: MyTheme.textPrimary,
+                ),
+              ),
+              IconButton(
+                onPressed: () {},
+                icon: Text(
+                  "See All",
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    color: MyTheme.primary,
+                    decoration: TextDecoration.underline,
+                    decorationColor: MyTheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 5.h),
+        Container(
+          padding: EdgeInsets.symmetric(vertical: 16.w, horizontal: 0.w),
+          margin: EdgeInsets.symmetric(horizontal: 15.w),
+          decoration: MyTheme.cardDecoration,
+          child: SizedBox(
+            height: 200.h,
+            child: BarChart(
+              BarChartData(
+                gridData: FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+
+                // 📅 Bottom Days
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        const days = [
+                          "Mon",
+                          "Tue",
+                          "Wed",
+                          "Thu",
+                          "Fri",
+                          "Sat",
+                          "Sun",
+                        ];
+
+                        if (value.toInt() < 0 || value.toInt() > 6) {
+                          return const SizedBox();
+                        }
+
+                        return Padding(
+                          padding: EdgeInsets.only(top: 4.h),
+                          child: Text(
+                            days[value.toInt()],
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w500,
+                              color: MyTheme.textSecondary,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+                // 👆 Tap → show amount
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => Colors.black87,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        "₹${rod.toY.toInt()}",
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // 📊 Bars
+                barGroups: [
+                  _bar(0, 200),
+                  _bar(1, 500),
+                  _bar(2, 300),
+                  _bar(3, 700),
+                  _bar(4, 400),
+                  _bar(5, 650),
+                  _bar(6, 450),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  BarChartGroupData _bar(int x, double y) {
+    return BarChartGroupData(
+      x: x,
+      barRods: [
+        BarChartRodData(
+          toY: y,
+          width: 14.w,
+          borderRadius: BorderRadius.circular(6.r),
+          color: MyTheme.primary,
+        ),
+      ],
     );
   }
 }

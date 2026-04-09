@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) => GetMaterialApp(
-        title: 'My ChatBot',
+        title: 'PocketCA',
         debugShowCheckedModeBanner: false,
         initialRoute: AppRoutes.bottomNavScreen,
         getPages: AppBinding.pages,

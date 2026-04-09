@@ -1,4 +1,5 @@
-
+import 'package:expense_tracker/ui/add_transaction/add_transaction_controller.dart';
+import 'package:expense_tracker/ui/analytics/analytics_controller.dart';
 import 'package:expense_tracker/ui/bottom_nav/bottom_nav_controller.dart';
 import 'package:expense_tracker/ui/home/home_controller.dart';
 import 'package:get/get.dart';
@@ -10,13 +11,28 @@ class HomeBinding extends Bindings {
   }
 }
 
+class AddTransactionBinding extends Bindings {
+  @override
+  void dependencies() {
+    Get.put<AddTransactionController>(
+      AddTransactionController(),
+      permanent: false,
+    );
+  }
+}
+
+class AnalyticsBinding extends Bindings {
+  @override
+  void dependencies() {
+    Get.put<AnalyticsController>(AnalyticsController(), permanent: false);
+  }
+}
+
 class BottomNavBinding extends Bindings {
   @override
   void dependencies() {
     Get.put<BottomNavController>(BottomNavController(), permanent: false);
     Get.put<HomeController>(HomeController(), permanent: false);
-    // Get.put<FavoriteController>(FavoriteController(), permanent: false);
-    // Get.put<CartController>(CartController(), permanent: false);
-    // Get.put<ProfileController>(ProfileController(), permanent: false);
+    Get.put<AnalyticsController>(AnalyticsController(), permanent: false);
   }
 }

@@ -8,6 +8,9 @@ class HomeController extends GetxController {
   var totalSpent = 0.0.obs;
   var totalReceived = 0.0.obs;
 
+  var selectedPeriod = "Today".obs;
+  final List<String> periods = ["Today", "Week", "Month"];
+
   @override
   void onInit() {
     super.onInit();
@@ -41,6 +44,11 @@ class HomeController extends GetxController {
     }
     totalSpent.value = spent;
     totalReceived.value = received;
+  }
+
+  void changePeriod(String period) {
+    selectedPeriod.value = period;
+    // You might want to re-filter transactions based on period here
   }
 
   Future<void> markAsSynced(int id) async {
