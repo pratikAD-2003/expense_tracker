@@ -35,20 +35,22 @@ class AddTransactionScreen extends StatelessWidget {
                             _typeSelectionBar(),
                             SizedBox(height: 20.h),
                             _amountDisplay(),
-                            SizedBox(height: 30.h),
-                            _sectionLabel("Category"),
-                            SizedBox(height: 10.h),
+                            SizedBox(height: 20.h),
+
+                            Row(
+                              children: [
+                                Expanded(child: _sectionLabel("Category")),
+                                Expanded(child: _dateSection(context)),
+                              ],
+                            ),
+                            SizedBox(height: 15.h),
                             _categorySection(),
-                            SizedBox(height: 20.h),
-                            _sectionLabel("Date"),
-                            SizedBox(height: 10.h),
-                            _dateSection(context),
-                            SizedBox(height: 20.h),
+                            SizedBox(height: 15.h),
                           ],
                         ),
                       ),
                     ),
-                    _numericKeyboard(context),
+                    _bottomKeyboardSection(context),
                   ],
                 ),
               ),
@@ -64,10 +66,7 @@ class AddTransactionScreen extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(15.w, 10.h, 15.w, 10.h),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Get.back(),
-            child: _headerAction(Icons.arrow_back_ios_new_rounded),
-          ),
+          _headerAction(Icons.arrow_back_ios_new_rounded, () => Get.back()),
           SizedBox(width: 20.w),
           Text(
             "Add Transaction",
@@ -82,13 +81,17 @@ class AddTransactionScreen extends StatelessWidget {
     );
   }
 
-  Widget _headerAction(IconData icon) {
-    return Container(
-      padding: EdgeInsets.all(10.w),
-      decoration: MyTheme.cardDecoration.copyWith(
-        borderRadius: BorderRadius.circular(14.r),
+  Widget _headerAction(IconData icon, VoidCallback onClick) {
+    return InkWell(
+      onTap: onClick,
+      borderRadius: BorderRadius.circular(14.r),
+      child: Container(
+        padding: EdgeInsets.all(10.w),
+        decoration: MyTheme.cardDecoration.copyWith(
+          borderRadius: BorderRadius.circular(14.r),
+        ),
+        child: Icon(icon, color: MyTheme.textSecondary, size: 20.w),
       ),
-      child: Icon(icon, color: MyTheme.textSecondary, size: 20.w),
     );
   }
 
@@ -158,7 +161,7 @@ class AddTransactionScreen extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: 5.h),
           Obx(
             () => Text(
               "₹${controller.formattedAmount}",
@@ -186,41 +189,37 @@ class AddTransactionScreen extends StatelessWidget {
   }
 
   Widget _categorySection() {
-    return SizedBox(
-      height: 40.h,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: controller.categories.length,
-        itemBuilder: (context, index) {
-          final category = controller.categories[index];
-          return Obx(() {
-            bool isSelected = controller.selectedCategory.value == category;
-            return GestureDetector(
-              onTap: () => controller.changeCategory(category),
-              child: Container(
-                margin: EdgeInsets.only(right: 10.w),
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                decoration: BoxDecoration(
-                  color: isSelected ? MyTheme.primary : Colors.white.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(20.r),
-                  border: Border.all(
-                    color: isSelected ? MyTheme.primary : Colors.transparent,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    category,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : MyTheme.textSecondary,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      fontSize: 12.sp,
-                    ),
-                  ),
+    return Obx(
+      () => Wrap(
+        spacing: 8.w,
+        runSpacing: 8.h,
+        children: controller.categories.map((category) {
+          bool isSelected = controller.selectedCategory.value == category;
+          return GestureDetector(
+            onTap: () => controller.changeCategory(category),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? MyTheme.primary
+                    : Colors.white.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(15.r),
+                border: Border.all(
+                  color: isSelected ? MyTheme.primary : Colors.transparent,
                 ),
               ),
-            );
-          });
-        },
+              child: Text(
+                category,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : MyTheme.textSecondary,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 11.sp,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -236,7 +235,7 @@ class AddTransactionScreen extends StatelessWidget {
           builder: (context, child) {
             return Theme(
               data: Theme.of(context).copyWith(
-                colorScheme: ColorScheme.light(
+                colorScheme: const ColorScheme.light(
                   primary: MyTheme.primary,
                   onPrimary: Colors.white,
                   onSurface: MyTheme.textPrimary,
@@ -251,11 +250,15 @@ class AddTransactionScreen extends StatelessWidget {
         }
       },
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 6.h),
         decoration: MyTheme.cardDecoration,
         child: Row(
           children: [
-            Icon(Icons.calendar_today_rounded, color: MyTheme.primary, size: 18.sp),
+            Icon(
+              Icons.calendar_today_rounded,
+              color: MyTheme.primary,
+              size: 18.sp,
+            ),
             SizedBox(width: 10.w),
             Obx(
               () => Text(
@@ -268,23 +271,20 @@ class AddTransactionScreen extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            Icon(Icons.arrow_forward_ios_rounded, color: MyTheme.textSecondary, size: 14.sp),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: MyTheme.textSecondary,
+              size: 14.sp,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _numericKeyboard(BuildContext context) {
-    final keys = [
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
-      ['00', '0', 'delete'],
-    ];
-
+  Widget _bottomKeyboardSection(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 15.h),
+      padding: EdgeInsets.fromLTRB(15.w, 15.h, 15.w, 15.h),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(30.r)),
@@ -298,17 +298,34 @@ class AddTransactionScreen extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: keys.map((row) {
-          return Padding(
-            padding: EdgeInsets.only(bottom: 10.h),
-            child: Row(
-              children: row.map((key) {
-                return Expanded(child: _keyboardButton(context, key));
-              }).toList(),
-            ),
-          );
-        }).toList(),
+        children: [
+          _numericRows(context),
+          SizedBox(height: 15.h),
+          _buildSaveButton(),
+        ],
       ),
+    );
+  }
+
+  Widget _numericRows(BuildContext context) {
+    final keys = [
+      ['1', '2', '3'],
+      ['4', '5', '6'],
+      ['7', '8', '9'],
+      ['00', '0', 'delete'],
+    ];
+
+    return Column(
+      children: keys.map((row) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: 8.h),
+          child: Row(
+            children: row.map((key) {
+              return Expanded(child: _keyboardButton(context, key));
+            }).toList(),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -321,8 +338,8 @@ class AddTransactionScreen extends StatelessWidget {
           ? controller.onDigitClear()
           : controller.onNumberPress(label),
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 5.w),
-        height: screenWidth * 0.15,
+        margin: EdgeInsets.symmetric(horizontal: 4.w),
+        height: 50.h,
         decoration: BoxDecoration(
           color: isDelete
               ? Colors.transparent
@@ -334,16 +351,47 @@ class AddTransactionScreen extends StatelessWidget {
               ? Icon(
                   Icons.backspace_outlined,
                   color: MyTheme.textPrimary,
-                  size: 24.w,
+                  size: 22.w,
                 )
               : Text(
                   label,
                   style: TextStyle(
-                    fontSize: 22.sp,
+                    fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
                     color: MyTheme.textPrimary,
                   ),
                 ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return InkWell(
+      onTap: () => controller.saveTransaction(),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 14.h),
+        decoration: BoxDecoration(
+          color: MyTheme.primary,
+          borderRadius: BorderRadius.circular(20.r),
+          boxShadow: [
+            BoxShadow(
+              color: MyTheme.primary.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            'Save Transaction',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ),
     );

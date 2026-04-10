@@ -1,7 +1,7 @@
-import 'package:expense_tracker/route/app_routes.dart';
+import 'dart:math';
+
 import 'package:expense_tracker/route/app_routes.dart';
 import 'package:expense_tracker/utils/my_theme.dart';
-import 'package:expense_tracker/utils/navigation_helper.dart';
 import 'package:expense_tracker/utils/navigation_helper.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +37,7 @@ class HomeScreen extends StatelessWidget {
                       SizedBox(height: 20.h),
                       _statsWidget(),
                       SizedBox(height: 20.h),
-                      WeeklyExpenseBarChart(),
+                      const WeeklyExpenseBarChart(),
                       SizedBox(height: 30.h),
                       _recentTransactions(),
                       SizedBox(height: 80.h),
@@ -129,12 +129,8 @@ class HomeScreen extends StatelessWidget {
                     child: Text(
                       period,
                       style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : MyTheme.textSecondary,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.w600,
+                        color: isSelected ? Colors.white : MyTheme.textSecondary,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                         fontSize: 12.sp,
                       ),
                     ),
@@ -219,28 +215,47 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
-        SizedBox(height: 0.h),
         Obx(
-          () => ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 5.h),
-            itemCount: controller.transactions.length,
-            separatorBuilder: (context, index) => SizedBox(height: 12.h),
-            itemBuilder: (context, index) {
-              final tx = controller.transactions[index];
-              return _transactionItem(tx);
-            },
-          ),
+          () {
+            // Show only first 10 transactions
+            final displayList = controller.transactions.take(10).toList();
+            
+            if (displayList.isEmpty) {
+              return Container(
+                height: 100.h,
+                alignment: Alignment.center,
+                child: Text(
+                  "No transactions for this period",
+                  style: TextStyle(color: MyTheme.textSecondary, fontSize: 13.sp),
+                ),
+              );
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 5.h),
+              itemCount: displayList.length,
+              separatorBuilder: (context, index) => SizedBox(height: 12.h),
+              itemBuilder: (context, index) {
+                final tx = displayList[index];
+                return _transactionItem(tx);
+              },
+            );
+          },
         ),
       ],
     );
   }
 
   Widget _transactionItem(Map tx) {
-    final bool isDebit = tx['type'].toString().toLowerCase() == 'debit';
+    final bool isExpense = tx['type'].toString().toUpperCase() == 'EXPENSE';
     final amount = tx['amount']?.toString() ?? "0.0";
-    final date = DateTime.fromMillisecondsSinceEpoch(tx['time'] as int);
+
+    final dynamic rawTime = tx['dateTime'] ?? tx['time'];
+    final int timeInt = (rawTime is String) ? (int.tryParse(rawTime) ?? 0) : (rawTime as int? ?? 0);
+    final date = DateTime.fromMillisecondsSinceEpoch(timeInt);
+
     final formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(date);
 
     return Container(
@@ -267,7 +282,7 @@ class HomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  tx['merchant'] ?? tx['sender'] ?? "Unknown",
+                  tx['title'] ?? tx['merchant'] ?? tx['sender'] ?? "Unknown",
                   style: TextStyle(
                     fontSize: 15.sp,
                     fontWeight: FontWeight.bold,
@@ -289,11 +304,11 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           Text(
-            "${isDebit ? '-' : '+'} ₹$amount",
+            "${isExpense ? '-' : '+'} ₹$amount",
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
-              color: isDebit ? Colors.redAccent : Colors.green,
+              color: isExpense ? Colors.redAccent : Colors.green,
             ),
           ),
         ],
@@ -302,19 +317,25 @@ class HomeScreen extends StatelessWidget {
   }
 
   IconData _getCategoryIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'food':
+    switch (category.toUpperCase()) {
+      case 'FOOD':
         return Icons.restaurant_rounded;
-      case 'shopping':
+      case 'SHOPPING':
         return Icons.shopping_bag_rounded;
-      case 'transport':
-        return Icons.directions_bus_rounded;
-      case 'entertainment':
-        return Icons.movie_rounded;
-      case 'health':
-        return Icons.medical_services_rounded;
-      case 'bills':
+      case 'UPI':
+        return Icons.qr_code_scanner_rounded;
+      case 'BILL':
         return Icons.receipt_long_rounded;
+      case 'RECHARGE':
+        return Icons.phone_android_rounded;
+      case 'SUBSCRIPTION':
+        return Icons.subscriptions_rounded;
+      case 'ATM':
+      case 'CARD':
+        return Icons.credit_card_rounded;
+      case 'OTHERS':
+      case 'CASH':
+        return Icons.payments_rounded;
       default:
         return Icons.payment_rounded;
     }
@@ -367,98 +388,25 @@ class WeeklyExpenseBarChart extends StatelessWidget {
             height: 200.h,
             child: BarChart(
               BarChartData(
-                gridData: FlGridData(show: false),
+                gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
-
-                // 📅 Bottom Days
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        const days = [
-                          "Mon",
-                          "Tue",
-                          "Wed",
-                          "Thu",
-                          "Fri",
-                          "Sat",
-                          "Sun",
-                        ];
-
-                        if (value.toInt() < 0 || value.toInt() > 6) {
-                          return const SizedBox();
-                        }
-
-                        return Padding(
-                          padding: EdgeInsets.only(top: 4.h),
-                          child: Text(
-                            days[value.toInt()],
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w500,
-                              color: MyTheme.textSecondary,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                // 👆 Tap → show amount
-                barTouchData: BarTouchData(
-                  enabled: true,
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipColor: (_) => Colors.black87,
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      return BarTooltipItem(
-                        "₹${rod.toY.toInt()}",
-                        const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                // 📊 Bars
-                barGroups: [
-                  _bar(0, 200),
-                  _bar(1, 500),
-                  _bar(2, 300),
-                  _bar(3, 700),
-                  _bar(4, 400),
-                  _bar(5, 650),
-                  _bar(6, 450),
-                ],
+                titlesData: const FlTitlesData(show: false),
+                barGroups: List.generate(7, (index) {
+                  return BarChartGroupData(
+                    x: index,
+                    barRods: [
+                      BarChartRodData(
+                        toY: (index + 1) * 10.0 + Random().nextInt(50),
+                        color: MyTheme.primary,
+                        width: 15.w,
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                    ],
+                  );
+                }),
               ),
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  BarChartGroupData _bar(int x, double y) {
-    return BarChartGroupData(
-      x: x,
-      barRods: [
-        BarChartRodData(
-          toY: y,
-          width: 14.w,
-          borderRadius: BorderRadius.circular(6.r),
-          color: MyTheme.primary,
         ),
       ],
     );

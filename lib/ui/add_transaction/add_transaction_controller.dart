@@ -1,44 +1,48 @@
+import 'package:expense_tracker/ui/home/home_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 class AddTransactionController extends GetxController {
-  final RxList<String> manualKeywords = <String>[].obs;
-
   final RxString amount = "0".obs;
-  
-  final List<String> types = ["Send", "Receive"];
-  final RxString selectedType = "Send".obs;
+
+  final List<String> types = ["Expense", "Income"];
+  final RxString selectedType = "Expense".obs;
 
   final List<String> categories = [
+    "Cash",
     "Food",
     "Transport",
     "Shopping",
     "Entertainment",
     "Health",
     "Bills",
-    "Others"
+    "Others",
   ];
-  final RxString selectedCategory = "Food".obs;
+  final RxString selectedCategory = "Cash".obs;
   final Rx<DateTime> selectedDate = DateTime.now().obs;
 
-  String get formattedDate => DateFormat('dd MMM yyyy').format(selectedDate.value);
+  String get formattedDate =>
+      DateFormat('dd MMM yyyy').format(selectedDate.value);
 
   String get formattedAmount {
-    if (amount.value.isEmpty) return "0";
-    final formatter = NumberFormat('#,##,###');
-    return formatter.format(int.parse(amount.value));
+    if (amount.value.isEmpty || amount.value == "0") return "0";
+    try {
+      final formatter = NumberFormat('#,##,###');
+      return formatter.format(double.parse(amount.value));
+    } catch (e) {
+      return amount.value;
+    }
   }
 
   void onNumberPress(String val) {
     if (amount.value == "0") {
-      if (val != "0") {
+      if (val != "0" && val != "00") {
         amount.value = val;
       }
     } else {
       String newAmount = amount.value + val;
-      // Condition: amount should only be under lakhs (max 999,999)
-      if (int.tryParse(newAmount) != null && int.parse(newAmount) < 10000000) {
+      if (newAmount.length < 9) {
         amount.value = newAmount;
       }
     }
@@ -64,8 +68,77 @@ class AddTransactionController extends GetxController {
     selectedDate.value = date;
   }
 
-  @override
-  void onClose() {
-    super.onClose();
+  /*  Future<void> saveTransaction() async {
+    if (amount.value == "0" || amount.value.isEmpty) {
+      Get.snackbar("Error", "Please enter an amount",
+          backgroundColor: Colors.redAccent.withOpacity(0.1),
+          colorText: Colors.redAccent);
+      return;
+    }
+
+    try {
+      final homeController = Get.find<HomeController>();
+
+      final newTx = {
+        "title": selectedCategory.value,
+        "amount": double.parse(amount.value),
+        "type": selectedType.value.toUpperCase(),
+        "category": selectedCategory.value,
+        "dateTime": selectedDate.value.millisecondsSinceEpoch,
+        "isManual": true,
+      };
+
+      // Add to home controller's list
+      homeController.transactions.insert(0, newTx);
+
+      Get.back();
+      Get.snackbar("Success", "Transaction added successfully",
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green);
+    } catch (e) {
+      Get.snackbar("Error", "Failed to save transaction: $e");
+    }
+  }*/
+  Future<void> saveTransaction() async {
+    if (amount.value == "0" || amount.value.isEmpty) {
+      Get.snackbar(
+        "Error",
+        "Please enter an amount",
+        backgroundColor: Colors.redAccent.withOpacity(0.1),
+        colorText: Colors.redAccent,
+      );
+      return;
+    }
+
+    try {
+      final homeController = Get.find<HomeController>();
+
+      final newTx = {
+        "id": DateTime.now().millisecondsSinceEpoch,
+        "title": selectedCategory.value,
+        "amount": double.parse(amount.value),
+        "type": selectedType.value.toUpperCase(), // EXPENSE / INCOME
+        "category": selectedCategory.value,
+        "dateTime": selectedDate.value.millisecondsSinceEpoch.toString(),
+        "source": "MANUAL",
+        "rawSms": "",
+      };
+
+      // ✅ IMPORTANT: add to ORIGINAL list
+      homeController.allTransactions.insert(0, newTx);
+
+      // ✅ re-apply filter
+      homeController.applyFilter();
+
+      Get.back();
+      Get.snackbar(
+        "Success",
+        "Transaction added successfully",
+        backgroundColor: Colors.green.withOpacity(0.1),
+        colorText: Colors.green,
+      );
+    } catch (e) {
+      Get.snackbar("Error", "Failed to save transaction: $e");
+    }
   }
 }

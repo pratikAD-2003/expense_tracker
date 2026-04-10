@@ -1,4 +1,3 @@
-/*
 package com.pratik.pocketca
 
 import android.content.ContentValues
@@ -7,116 +6,20 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 class SmsDatabase(context: Context) :
-    SQLiteOpenHelper(context, "sms_db", null, 1) {
+    SQLiteOpenHelper(context, "sms_db", null, 3) {
 
     override fun onCreate(db: SQLiteDatabase) {
-
         db.execSQL(
             """
             CREATE TABLE transactions(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sender TEXT,
-                amount REAL,
                 type TEXT,
-                message TEXT,
-                time INTEGER,
-                synced INTEGER DEFAULT 0
-            )
-            """
-        )
-    }
-
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {}
-
-    fun insertTransaction(
-        sender: String,
-        amount: Double,
-        type: String,
-        message: String,
-        time: Long
-    ) {
-
-        val db = writableDatabase
-
-        val values = ContentValues()
-
-        values.put("sender", sender)
-        values.put("amount", amount)
-        values.put("type", type)
-        values.put("message", message)
-        values.put("time", time)
-        values.put("synced", 0)
-
-        db.insert("transactions", null, values)
-    }
-
-    fun getUnsynced(): List<Map<String, Any>> {
-
-        val list = mutableListOf<Map<String, Any>>()
-
-        val db = readableDatabase
-
-        val cursor = db.rawQuery(
-            "SELECT * FROM transactions WHERE synced = 0",
-            null
-        )
-
-        while (cursor.moveToNext()) {
-
-            val map = HashMap<String, Any>()
-
-            map["id"] = cursor.getInt(0)
-            map["sender"] = cursor.getString(1)
-            map["amount"] = cursor.getDouble(2)
-            map["type"] = cursor.getString(3)
-            map["message"] = cursor.getString(4)
-            map["time"] = cursor.getLong(5)
-
-            list.add(map)
-        }
-
-        cursor.close()
-
-        return list
-    }
-
-    fun markSynced(id: Int) {
-
-        val db = writableDatabase
-
-        val values = ContentValues()
-
-        values.put("synced", 1)
-
-        db.update("transactions", values, "id=?", arrayOf(id.toString()))
-    }
-}*/
-package com.pratik.pocketca
-
-import android.content.ContentValues
-import android.content.Context
-import android.database.sqlite.SQLiteDatabase
-import android.database.sqlite.SQLiteOpenHelper
-
-class SmsDatabase(context: Context) :
-    SQLiteOpenHelper(context, "sms_db", null, 2) {
-
-    override fun onCreate(db: SQLiteDatabase) {
-
-        db.execSQL(
-            """
-            CREATE TABLE transactions(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sender TEXT,
-                amount REAL,
-                type TEXT,
-                merchant TEXT,
                 category TEXT,
-                account TEXT,
-                balance REAL,
-                message TEXT,
-                time INTEGER,
-                hash TEXT UNIQUE,
+                amount REAL,
+                title TEXT,
+                dateTime TEXT,
+                source TEXT,
+                rawSms TEXT,
                 synced INTEGER DEFAULT 0
             )
             """
@@ -128,47 +31,46 @@ class SmsDatabase(context: Context) :
         oldVersion: Int,
         newVersion: Int
     ) {
+        if (oldVersion < 3) {
+            // Safely add missing columns, exceptions caught if they already exist
+            try { db.execSQL("ALTER TABLE transactions ADD COLUMN title TEXT") } catch (e: Exception) {}
+            try { db.execSQL("ALTER TABLE transactions ADD COLUMN dateTime TEXT") } catch (e: Exception) {}
+            try { db.execSQL("ALTER TABLE transactions ADD COLUMN source TEXT") } catch (e: Exception) {}
+            try { db.execSQL("ALTER TABLE transactions ADD COLUMN rawSms TEXT") } catch (e: Exception) {}
 
-        if (oldVersion < 2) {
-
-            db.execSQL("ALTER TABLE transactions ADD COLUMN merchant TEXT")
-            db.execSQL("ALTER TABLE transactions ADD COLUMN category TEXT")
-            db.execSQL("ALTER TABLE transactions ADD COLUMN account TEXT")
-            db.execSQL("ALTER TABLE transactions ADD COLUMN balance REAL")
-            db.execSQL("ALTER TABLE transactions ADD COLUMN hash TEXT")
+            // Map old data to new standard model
+            db.execSQL("UPDATE transactions SET title = merchant WHERE title IS NULL AND merchant IS NOT NULL")
+            db.execSQL("UPDATE transactions SET title = sender WHERE title IS NULL AND merchant IS NULL")
+            db.execSQL("UPDATE transactions SET dateTime = CAST(time AS TEXT) WHERE dateTime IS NULL")
+            db.execSQL("UPDATE transactions SET source = 'SMS' WHERE source IS NULL")
+            db.execSQL("UPDATE transactions SET rawSms = message WHERE rawSms IS NULL")
+            
+            // Map legacy debits/credits
+            db.execSQL("UPDATE transactions SET type = 'EXPENSE' WHERE LOWER(type) = 'debit'")
+            db.execSQL("UPDATE transactions SET type = 'INCOME' WHERE LOWER(type) = 'credit'")
         }
     }
 
     fun insertTransaction(
-        sender: String,
-        amount: Double,
         type: String,
-        merchant: String?,
-        category: String?,
-        account: String?,
-        balance: Double?,
-        message: String,
-        time: Long,
-        hash: String
+        category: String,
+        amount: Double,
+        title: String,
+        dateTime: String,
+        source: String,
+        rawSms: String
     ) {
-
         val db = writableDatabase
-
         val values = ContentValues().apply {
-
-            put("sender", sender)
-            put("amount", amount)
             put("type", type)
-            put("merchant", merchant)
             put("category", category)
-            put("account", account)
-            put("balance", balance)
-            put("message", message)
-            put("time", time)
-            put("hash", hash)
+            put("amount", amount)
+            put("title", title)
+            put("dateTime", dateTime)
+            put("source", source)
+            put("rawSms", rawSms)
             put("synced", 0)
         }
-
         db.insertWithOnConflict(
             "transactions",
             null,
@@ -178,52 +80,34 @@ class SmsDatabase(context: Context) :
     }
 
     fun getUnsynced(): List<Map<String, Any?>> {
-
         val list = mutableListOf<Map<String, Any?>>()
-
         val db = readableDatabase
-
+        
+        // Select only the unified finalized columns
         val cursor = db.rawQuery(
-            "SELECT * FROM transactions WHERE synced = 0 ORDER BY time DESC",
+            "SELECT id, type, category, amount, title, dateTime, source, rawSms FROM transactions WHERE synced = 0 ORDER BY id DESC",
             null
         )
 
         while (cursor.moveToNext()) {
-
             val map = HashMap<String, Any?>()
-
             map["id"] = cursor.getInt(cursor.getColumnIndexOrThrow("id"))
-            map["sender"] = cursor.getString(cursor.getColumnIndexOrThrow("sender"))
-            map["amount"] = cursor.getDouble(cursor.getColumnIndexOrThrow("amount"))
             map["type"] = cursor.getString(cursor.getColumnIndexOrThrow("type"))
-            map["merchant"] = cursor.getString(cursor.getColumnIndexOrThrow("merchant"))
             map["category"] = cursor.getString(cursor.getColumnIndexOrThrow("category"))
-            map["account"] = cursor.getString(cursor.getColumnIndexOrThrow("account"))
-            map["balance"] = cursor.getDouble(cursor.getColumnIndexOrThrow("balance"))
-            map["message"] = cursor.getString(cursor.getColumnIndexOrThrow("message"))
-            map["time"] = cursor.getLong(cursor.getColumnIndexOrThrow("time"))
-
+            map["amount"] = cursor.getDouble(cursor.getColumnIndexOrThrow("amount"))
+            map["title"] = cursor.getString(cursor.getColumnIndexOrThrow("title"))
+            map["dateTime"] = cursor.getString(cursor.getColumnIndexOrThrow("dateTime"))
+            map["source"] = cursor.getString(cursor.getColumnIndexOrThrow("source"))
+            map["rawSms"] = cursor.getString(cursor.getColumnIndexOrThrow("rawSms"))
             list.add(map)
         }
-
         cursor.close()
-
         return list
     }
 
     fun markSynced(id: Int) {
-
         val db = writableDatabase
-
-        val values = ContentValues()
-
-        values.put("synced", 1)
-
-        db.update(
-            "transactions",
-            values,
-            "id=?",
-            arrayOf(id.toString())
-        )
+        val values = ContentValues().apply { put("synced", 1) }
+        db.update("transactions", values, "id=?", arrayOf(id.toString()))
     }
 }
