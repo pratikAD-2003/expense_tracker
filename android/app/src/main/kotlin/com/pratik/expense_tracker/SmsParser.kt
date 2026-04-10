@@ -1,322 +1,3 @@
-/*
-package com.pratik.expense_tracker
-
-object SmsParser {
-
-    fun parseAmount(message: String): Double? {
-
-        val regex = Regex("(?:Rs|INR|₹)\\s?([0-9,]+\\.?[0-9]*)")
-
-        val match = regex.find(message)
-
-        return match?.groupValues?.get(1)
-            ?.replace(",", "")
-            ?.toDoubleOrNull()
-    }
-
-    fun detectType(message: String): String? {
-
-        val msg = message.lowercase()
-
-        return when {
-
-            msg.contains("debited") ||
-                    msg.contains("spent") ||
-                    msg.contains("withdrawn") ||
-                    msg.contains("purchase") -> "debit"
-
-            msg.contains("credited") ||
-                    msg.contains("received") ||
-                    msg.contains("deposit") -> "credit"
-
-            else -> null
-        }
-    }
-}*/
-/*
-package com.pratik.expense_tracker
-
-import java.security.MessageDigest
-
-object SmsParser {
-
-    data class Transaction(
-        val amount: Double,
-        val type: String,
-        val merchant: String?,
-        val category: String,
-        val account: String?,
-        val balance: Double?,
-        val upi: String?,
-        val reference: String?,
-        val subscription: Boolean,
-        val hash: String
-    )
-
-    // ---------------- IGNORE FILTER ----------------
-
-    private val ignoreWords = listOf(
-        "otp",
-        "one time password",
-        "verification code",
-        "loan offer",
-        "credit limit",
-        "minimum due",
-        "reward points",
-        "cashback offer",
-        "promo",
-        "sale",
-        "discount",
-        "pre approved",
-        "apply now"
-    )
-
-    fun isTransactionSms(message: String): Boolean {
-
-        val msg = message.lowercase()
-
-        return ignoreWords.none { msg.contains(it) }
-    }
-
-    // ---------------- REGEX ----------------
-
-    private val amountRegex =
-        Regex("(?:rs|inr|₹)\\.?\\s?([0-9,]+\\.?[0-9]*)", RegexOption.IGNORE_CASE)
-
-    private val balanceRegex =
-        Regex("(?:bal|balance|avl bal).*?(?:rs|inr|₹)\\.?\\s?([0-9,]+\\.?[0-9]*)", RegexOption.IGNORE_CASE)
-
-    private val upiRegex =
-        Regex("[a-zA-Z0-9._-]+@[a-zA-Z]+")
-
-    private val refRegex =
-        Regex("(?:utr|ref no|txn id|reference|ref)[: ]*([A-Za-z0-9]+)", RegexOption.IGNORE_CASE)
-
-    private val accountRegex =
-        Regex("(?:a/c|acct|account).*?x*([0-9]{2,4})", RegexOption.IGNORE_CASE)
-
-    // ---------------- TYPE DETECTION ----------------
-
-    private val debitKeywords = listOf(
-        "debited",
-        "spent",
-        "withdrawn",
-        "purchase",
-        "paid",
-        "sent",
-        "dr",
-        "payment",
-        "upi payment",
-        "transfer to"
-    )
-
-    private val creditKeywords = listOf(
-        "credited",
-        "received",
-        "deposit",
-        "refund",
-        "cashback",
-        "cr",
-        "transfer from"
-    )
-
-    // ---------------- MERCHANT EXTRACTION ----------------
-
-    private val merchantPatterns = listOf(
-
-        Regex("to ([A-Za-z0-9 .&_-]+)", RegexOption.IGNORE_CASE),
-        Regex("at ([A-Za-z0-9 .&_-]+)", RegexOption.IGNORE_CASE),
-        Regex("from ([A-Za-z0-9 .&_-]+)", RegexOption.IGNORE_CASE),
-        Regex("paid to ([A-Za-z0-9 .&_-]+)", RegexOption.IGNORE_CASE),
-        Regex("towards ([A-Za-z0-9 .&_-]+)", RegexOption.IGNORE_CASE)
-    )
-
-    // ---------------- MERCHANT NORMALIZATION ----------------
-
-    private val merchantRules = mapOf(
-
-        "swiggy" to "Swiggy",
-        "zomato" to "Zomato",
-        "amazon" to "Amazon",
-        "flipkart" to "Flipkart",
-        "uber" to "Uber",
-        "ola" to "Ola",
-        "myntra" to "Myntra",
-        "ajio" to "Ajio",
-        "netflix" to "Netflix",
-        "spotify" to "Spotify",
-        "youtube" to "YouTube",
-        "prime" to "Amazon Prime",
-        "apple" to "Apple",
-        "paytm" to "Paytm",
-        "phonepe" to "PhonePe",
-        "gpay" to "Google Pay",
-        "bharatpe" to "BharatPe",
-        "irctc" to "IRCTC"
-    )
-
-    // ---------------- CATEGORY ENGINE ----------------
-
-    private fun detectCategory(merchant: String?): String {
-
-        if (merchant == null) return "Others"
-
-        val m = merchant.lowercase()
-
-        return when {
-
-            m.contains("swiggy") ||
-                    m.contains("zomato") -> "Food"
-
-            m.contains("uber") ||
-                    m.contains("ola") ||
-                    m.contains("irctc") -> "Travel"
-
-            m.contains("amazon") ||
-                    m.contains("flipkart") ||
-                    m.contains("myntra") ||
-                    m.contains("ajio") -> "Shopping"
-
-            m.contains("netflix") ||
-                    m.contains("spotify") ||
-                    m.contains("youtube") ||
-                    m.contains("prime") -> "Subscription"
-
-            m.contains("bill") ||
-                    m.contains("electricity") ||
-                    m.contains("recharge") -> "Bills"
-
-            else -> "Others"
-        }
-    }
-
-    // ---------------- SUBSCRIPTION DETECTOR ----------------
-
-    private fun detectSubscription(merchant: String?): Boolean {
-
-        if (merchant == null) return false
-
-        val m = merchant.lowercase()
-
-        return m.contains("netflix")
-                || m.contains("spotify")
-                || m.contains("youtube")
-                || m.contains("prime")
-                || m.contains("apple")
-    }
-
-    // ---------------- MERCHANT PARSER ----------------
-
-    private fun extractMerchant(message: String): String? {
-
-        merchantPatterns.forEach {
-
-            val match = it.find(message)
-
-            if (match != null) {
-
-                return match.groupValues[1]
-                    .replace(".", "")
-                    .replace(",", "")
-                    .trim()
-            }
-        }
-
-        return null
-    }
-
-    private fun normalizeMerchant(merchant: String?): String? {
-
-        if (merchant == null) return null
-
-        val m = merchant.lowercase()
-
-        merchantRules.forEach {
-
-            if (m.contains(it.key))
-                return it.value
-        }
-
-        return merchant
-    }
-
-    // ---------------- DUPLICATE HASH ----------------
-
-    private fun generateHash(
-        amount: Double,
-        merchant: String?,
-        type: String
-    ): String {
-
-        val input = "$amount|$merchant|$type"
-
-        val md = MessageDigest.getInstance("MD5")
-
-        val bytes = md.digest(input.toByteArray())
-
-        return bytes.joinToString("") { "%02x".format(it) }
-    }
-
-    // ---------------- MAIN PARSER ----------------
-
-    fun parse(message: String): Transaction? {
-
-        if (!isTransactionSms(message)) return null
-
-        val msg = message.lowercase()
-
-        val amount = amountRegex.find(message)
-            ?.groupValues?.get(1)
-            ?.replace(",", "")
-            ?.toDoubleOrNull()
-            ?: return null
-
-        val type = when {
-
-            debitKeywords.any { msg.contains(it) } -> "debit"
-
-            creditKeywords.any { msg.contains(it) } -> "credit"
-
-            else -> return null
-        }
-
-        val balance = balanceRegex.find(message)
-            ?.groupValues?.get(1)
-            ?.replace(",", "")
-            ?.toDoubleOrNull()
-
-        val upi = upiRegex.find(message)?.value
-
-        val reference =
-            refRegex.find(message)?.groupValues?.get(1)
-
-        val account =
-            accountRegex.find(message)?.groupValues?.get(1)
-
-        val merchantRaw = extractMerchant(message)
-
-        val merchant = normalizeMerchant(merchantRaw)
-
-        val category = detectCategory(merchant)
-
-        val subscription = detectSubscription(merchant)
-
-        val hash = generateHash(amount, merchant, type)
-
-        return Transaction(
-            amount = amount,
-            type = type,
-            merchant = merchant,
-            category = category,
-            account = account,
-            balance = balance,
-            upi = upi,
-            reference = reference,
-            subscription = subscription,
-            hash = hash
-        )
-    }
-}*/
 package com.pratik.expense_tracker
 
 import java.security.MessageDigest
@@ -439,12 +120,12 @@ object SmsParser {
 
     private fun detectType(msg: String): String? {
         val hasCredit = creditKeywords.any { msg.contains(it) }
-        val hasDebit  = debitKeywords.any  { msg.contains(it) }
+        val hasDebit = debitKeywords.any { msg.contains(it) }
         return when {
             hasCredit && hasDebit -> "credit"  // "payment received" → credit
             hasCredit -> "credit"
-            hasDebit  -> "debit"
-            else      -> null
+            hasDebit -> "debit"
+            else -> null
         }
     }
 
@@ -498,45 +179,45 @@ object SmsParser {
     // ─────────────────────────────────────────────────────────────
 
     private val merchantRules = listOf(
-        "swiggy"    to "Swiggy",
-        "zomato"    to "Zomato",
-        "amazon"    to "Amazon",
-        "flipkart"  to "Flipkart",
-        "ubereats"  to "Uber Eats",
-        "uber"      to "Uber",
-        "rapido"    to "Rapido",
-        "ola"       to "Ola",
-        "myntra"    to "Myntra",
-        "ajio"      to "Ajio",
-        "meesho"    to "Meesho",
-        "netflix"   to "Netflix",
-        "spotify"   to "Spotify",
-        "youtube"   to "YouTube",
+        "swiggy" to "Swiggy",
+        "zomato" to "Zomato",
+        "amazon" to "Amazon",
+        "flipkart" to "Flipkart",
+        "ubereats" to "Uber Eats",
+        "uber" to "Uber",
+        "rapido" to "Rapido",
+        "ola" to "Ola",
+        "myntra" to "Myntra",
+        "ajio" to "Ajio",
+        "meesho" to "Meesho",
+        "netflix" to "Netflix",
+        "spotify" to "Spotify",
+        "youtube" to "YouTube",
         "primevideo" to "Amazon Prime",
-        "prime"     to "Amazon Prime",
-        "hotstar"   to "Hotstar",
+        "prime" to "Amazon Prime",
+        "hotstar" to "Hotstar",
         "jiocinema" to "JioCinema",
-        "apple"     to "Apple",
-        "paytm"     to "Paytm",
-        "phonepe"   to "PhonePe",
-        "gpay"      to "Google Pay",
+        "apple" to "Apple",
+        "paytm" to "Paytm",
+        "phonepe" to "PhonePe",
+        "gpay" to "Google Pay",
         "googlepay" to "Google Pay",
-        "bharatpe"  to "BharatPe",
-        "irctc"     to "IRCTC",
-        "bigbasket"  to "BigBasket",
-        "blinkit"   to "Blinkit",
-        "grofers"   to "Blinkit",
-        "zepto"     to "Zepto",
-        "dunzo"     to "Dunzo",
-        "nykaa"     to "Nykaa",
+        "bharatpe" to "BharatPe",
+        "irctc" to "IRCTC",
+        "bigbasket" to "BigBasket",
+        "blinkit" to "Blinkit",
+        "grofers" to "Blinkit",
+        "zepto" to "Zepto",
+        "dunzo" to "Dunzo",
+        "nykaa" to "Nykaa",
         "bookmyshow" to "BookMyShow",
         "makemytrip" to "MakeMyTrip",
-        "goibibo"   to "Goibibo",
-        "airtel"    to "Airtel",
-        "jio"       to "Jio",
-        "bsnl"      to "BSNL",
-        "vodafone"  to "Vodafone",
-        "vi"        to "Vi"
+        "goibibo" to "Goibibo",
+        "airtel" to "Airtel",
+        "jio" to "Jio",
+        "bsnl" to "BSNL",
+        "vodafone" to "Vodafone",
+        "vi" to "Vi"
     )
 
     private fun normalizeMerchant(merchant: String?): String? {
@@ -562,33 +243,49 @@ object SmsParser {
         ).joinToString(" ")
 
         return when {
-            targets.containsAny("swiggy", "zomato", "eatsure", "dominos", "mcdonalds",
-                "kfc", "barbeque", "restaurant", "cafe", "food", "hunger") -> "Food"
+            targets.containsAny(
+                "swiggy", "zomato", "eatsure", "dominos", "mcdonalds",
+                "kfc", "barbeque", "restaurant", "cafe", "food", "hunger"
+            ) -> "Food"
 
-            targets.containsAny("uber", "ola", "rapido", "irctc", "redbus",
+            targets.containsAny(
+                "uber", "ola", "rapido", "irctc", "redbus",
                 "makemytrip", "goibibo", "easemytrip", "metro", "fuel", "petrol",
-                "diesel", "parking", "fastag", "toll") -> "Travel"
+                "diesel", "parking", "fastag", "toll"
+            ) -> "Travel"
 
-            targets.containsAny("amazon", "flipkart", "myntra", "ajio", "meesho",
+            targets.containsAny(
+                "amazon", "flipkart", "myntra", "ajio", "meesho",
                 "nykaa", "tatacliq", "snapdeal", "shopsy", "zepto", "blinkit",
-                "bigbasket", "grofers", "dmart", "reliance", "jiomart") -> "Shopping"
+                "bigbasket", "grofers", "dmart", "reliance", "jiomart"
+            ) -> "Shopping"
 
-            targets.containsAny("netflix", "spotify", "youtube", "prime", "hotstar",
+            targets.containsAny(
+                "netflix", "spotify", "youtube", "prime", "hotstar",
                 "jiosaavn", "gaana", "jiocinema", "zee5", "sonyliv",
-                "apple music", "subscription", "renewal") -> "Subscription"
+                "apple music", "subscription", "renewal"
+            ) -> "Subscription"
 
-            targets.containsAny("electricity", "water board", "gas bill", "broadband",
+            targets.containsAny(
+                "electricity", "water board", "gas bill", "broadband",
                 "recharge", "airtel", "jio", "bsnl", "vi ", "vodafone",
-                "bill", "emi", "insurance", "loan repay") -> "Bills & Utilities"
+                "bill", "emi", "insurance", "loan repay"
+            ) -> "Bills & Utilities"
 
-            targets.containsAny("hospital", "clinic", "pharmacy", "medplus",
-                "apollo", "practo", "doctor", "medical", "health") -> "Health"
+            targets.containsAny(
+                "hospital", "clinic", "pharmacy", "medplus",
+                "apollo", "practo", "doctor", "medical", "health"
+            ) -> "Health"
 
-            targets.containsAny("school", "college", "university", "udemy",
-                "coursera", "byju", "unacademy", "tuition", "fees") -> "Education"
+            targets.containsAny(
+                "school", "college", "university", "udemy",
+                "coursera", "byju", "unacademy", "tuition", "fees"
+            ) -> "Education"
 
-            targets.containsAny("casino", "dream11", "mpl", "my11circle",
-                "rummy", "poker", "gambl", "lottery") -> "Gaming & Betting"
+            targets.containsAny(
+                "casino", "dream11", "mpl", "my11circle",
+                "rummy", "poker", "gambl", "lottery"
+            ) -> "Gaming & Betting"
 
             else -> "Others"
         }
@@ -698,43 +395,43 @@ object SmsParser {
         var rawMerchant: String?
 
         if (bankResult != null) {
-            amount      = bankResult.amount
-            type        = bankResult.type
-            account     = bankResult.account
-            balance     = bankResult.balance
-            reference   = bankResult.reference
+            amount = bankResult.amount
+            type = bankResult.type
+            account = bankResult.account
+            balance = bankResult.balance
+            reference = bankResult.reference
             rawMerchant = bankResult.merchant
         } else {
             // ── Generic path ──
             amount = parseAmount(message) ?: return null
-            type   = detectType(msg) ?: return null
+            type = detectType(msg) ?: return null
 
-            balance   = balanceRegex.find(message)?.groupValues?.get(1)
+            balance = balanceRegex.find(message)?.groupValues?.get(1)
                 ?.replace(",", "")?.toDoubleOrNull()
             reference = refRegex.find(message)?.groupValues?.get(1)
-            account   = accountRegex.find(message)?.groupValues?.get(1)
+            account = accountRegex.find(message)?.groupValues?.get(1)
             rawMerchant = extractMerchant(message)
         }
 
-        val upi      = upiRegex.find(message)?.value
+        val upi = upiRegex.find(message)?.value
         val merchant = normalizeMerchant(rawMerchant)
             ?: upi?.substringBefore("@")?.let { normalizeMerchant(it) }
 
-        val category     = detectCategory(merchant, upi, message)
+        val category = detectCategory(merchant, upi, message)
         val subscription = detectSubscription(merchant, message)
-        val hash         = generateHash(amount, merchant, type, reference)
+        val hash = generateHash(amount, merchant, type, reference)
 
         return Transaction(
-            amount       = amount,
-            type         = type,
-            merchant     = merchant,
-            category     = category,
-            account      = account,
-            balance      = balance,
-            upi          = upi,
-            reference    = reference,
+            amount = amount,
+            type = type,
+            merchant = merchant,
+            category = category,
+            account = account,
+            balance = balance,
+            upi = upi,
+            reference = reference,
             subscription = subscription,
-            hash         = hash
+            hash = hash
         )
     }
 }
