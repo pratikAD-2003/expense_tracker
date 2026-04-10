@@ -1,5 +1,7 @@
 import 'package:expense_tracker/ui/add_transaction/add_transaction_screen.dart';
 import 'package:expense_tracker/ui/analytics/analytics_screen.dart';
+import 'package:expense_tracker/ui/notification/notification_screen.dart';
+import 'package:expense_tracker/ui/settings/settings_screen.dart';
 import 'package:get/get.dart';
 
 import '../binding.dart';
@@ -28,6 +30,16 @@ class AppBinding {
       name: AppRoutes.bottomNavScreen,
       page: () => BottomNavScreen(),
       binding: BottomNavBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.settingsScreen,
+      page: () => SettingsScreen(),
+      binding: SettingsBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.notificationScreen,
+      page: () => NotificationScreen(),
+      binding: NotificationBinding(),
     ),
   ];
 }

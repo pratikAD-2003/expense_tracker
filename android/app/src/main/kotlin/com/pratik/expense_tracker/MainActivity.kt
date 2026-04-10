@@ -1,4 +1,4 @@
-package com.pratik.expense_tracker
+package com.pratik.pocketca
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine

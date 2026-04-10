@@ -1,5 +1,5 @@
 /*
-package com.pratik.expense_tracker
+package com.pratik.pocketca
 
 import android.content.ContentValues
 import android.content.Context
@@ -91,7 +91,7 @@ class SmsDatabase(context: Context) :
         db.update("transactions", values, "id=?", arrayOf(id.toString()))
     }
 }*/
-package com.pratik.expense_tracker
+package com.pratik.pocketca
 
 import android.content.ContentValues
 import android.content.Context

@@ -1,5 +1,5 @@
 /*
-package com.pratik.expense_tracker
+package com.pratik.pocketca
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -56,7 +56,7 @@ class SmsReceiver : BroadcastReceiver() {
         }
     }
 }*/
-package com.pratik.expense_tracker
+package com.pratik.pocketca
 
 import android.content.BroadcastReceiver
 import android.content.Context

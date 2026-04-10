@@ -1,4 +1,8 @@
+import 'package:expense_tracker/route/app_routes.dart';
+import 'package:expense_tracker/route/app_routes.dart';
 import 'package:expense_tracker/utils/my_theme.dart';
+import 'package:expense_tracker/utils/navigation_helper.dart';
+import 'package:expense_tracker/utils/navigation_helper.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -55,7 +59,10 @@ class HomeScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _headerAction(Icons.settings_outlined),
+          _headerAction(
+            Icons.settings_outlined,
+            () => NavigationHelper.navigateTo(AppRoutes.settingsScreen),
+          ),
           Text(
             DateFormat('EEE, d MMM yyyy').format(DateTime.now()),
             style: TextStyle(
@@ -64,19 +71,26 @@ class HomeScreen extends StatelessWidget {
               color: MyTheme.textPrimary,
             ),
           ),
-          _headerAction(Icons.notifications_none_rounded),
+          _headerAction(
+            Icons.notifications_none_rounded,
+            () => NavigationHelper.navigateTo(AppRoutes.notificationScreen),
+          ),
         ],
       ),
     );
   }
 
-  Widget _headerAction(IconData icon) {
-    return Container(
-      padding: EdgeInsets.all(10.w),
-      decoration: MyTheme.cardDecoration.copyWith(
-        borderRadius: BorderRadius.circular(14.r),
+  Widget _headerAction(IconData icon, VoidCallback onClick) {
+    return InkWell(
+      onTap: () => onClick(),
+      borderRadius: BorderRadius.circular(14.r),
+      child: Container(
+        padding: EdgeInsets.all(10.w),
+        decoration: MyTheme.cardDecoration.copyWith(
+          borderRadius: BorderRadius.circular(14.r),
+        ),
+        child: Icon(icon, color: MyTheme.textSecondary, size: 24.w),
       ),
-      child: Icon(icon, color: MyTheme.textSecondary, size: 24.w),
     );
   }
 

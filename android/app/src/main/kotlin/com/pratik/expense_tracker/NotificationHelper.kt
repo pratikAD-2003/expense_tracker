@@ -1,4 +1,4 @@
-package com.pratik.expense_tracker
+package com.pratik.pocketca
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
