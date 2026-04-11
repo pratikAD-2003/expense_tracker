@@ -1,7 +1,9 @@
 import 'package:expense_tracker/ui/add_transaction/add_transaction_screen.dart';
 import 'package:expense_tracker/ui/analytics/analytics_screen.dart';
+import 'package:expense_tracker/ui/intro/intro_screen.dart';
 import 'package:expense_tracker/ui/notification/notification_screen.dart';
 import 'package:expense_tracker/ui/settings/settings_screen.dart';
+import 'package:expense_tracker/ui/splash/splash_screen.dart';
 import 'package:expense_tracker/ui/transaction_history/transaction_history_screen.dart';
 import 'package:get/get.dart';
 
@@ -46,6 +48,16 @@ class AppBinding {
       name: AppRoutes.transactionHistoryScreen,
       page: () => TransactionHistoryScreen(),
       binding: TransactionHistoryBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.introScreen,
+      page: () => IntroScreen(),
+      binding: IntroBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.splashScreen,
+      page: () => SplashScreen(),
+      binding: SplashBinding(),
     ),
   ];
 }

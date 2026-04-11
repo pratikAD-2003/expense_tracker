@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
       builder: (context, child) => GetMaterialApp(
         title: 'PocketCA',
         debugShowCheckedModeBanner: false,
-        initialRoute: AppRoutes.bottomNavScreen,
+        initialRoute: AppRoutes.splashScreen,
         getPages: AppBinding.pages,
         theme: ThemeData(useMaterial3: true, fontFamily: 'Montserrat'),
         builder: (context, child) {

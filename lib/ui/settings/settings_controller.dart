@@ -1,19 +1,51 @@
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class SettingsController extends GetxController {
+  static const _channel = MethodChannel('native_notification');
+
   var isNotificationsEnabled = true.obs;
-  var isDarkMode = false.obs;
-  var selectedCurrency = 'USD'.obs;
+  var isSoundEnabled = true.obs;
 
-  void toggleNotifications(bool value) {
+  @override
+  void onInit() {
+    super.onInit();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final Map? settings = await _channel.invokeMapMethod('getSettings');
+      if (settings != null) {
+        isNotificationsEnabled.value = settings['isNotificationsEnabled'] ?? true;
+        isSoundEnabled.value = settings['isSoundEnabled'] ?? true;
+      }
+    } catch (e) {
+      print("Error loading native settings: $e");
+    }
+  }
+
+  Future<void> toggleNotifications(bool value) async {
     isNotificationsEnabled.value = value;
+    try {
+      await _channel.invokeMethod('updateSetting', {
+        'key': 'isNotificationsEnabled',
+        'value': value,
+      });
+    } catch (e) {
+      print("Error updating notification setting: $e");
+    }
   }
 
-  void toggleDarkMode(bool value) {
-    isDarkMode.value = value;
-  }
-
-  void updateCurrency(String value) {
-    selectedCurrency.value = value;
+  Future<void> toggleSoundEnable(bool value) async {
+    isSoundEnabled.value = value;
+    try {
+      await _channel.invokeMethod('updateSetting', {
+        'key': 'isSoundEnabled',
+        'value': value,
+      });
+    } catch (e) {
+      print("Error updating sound setting: $e");
+    }
   }
 }

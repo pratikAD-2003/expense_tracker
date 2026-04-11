@@ -42,6 +42,17 @@ class SettingsScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    Obx(
+                      () => _buildSettingTile(
+                        icon: Icons.music_note,
+                        title: 'Sound',
+                        trailing: Switch(
+                          value: controller.isSoundEnabled.value,
+                          onChanged: controller.toggleSoundEnable,
+                          activeColor: MyTheme.primary,
+                        ),
+                      ),
+                    ),
                     _buildSettingTile(
                       icon: Icons.security_outlined,
                       title: 'Privacy & Security',

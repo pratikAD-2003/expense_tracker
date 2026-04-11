@@ -1,5 +1,6 @@
 package com.pratik.pocketca
 
+import android.content.Context
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -7,6 +8,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
 
     private val CHANNEL = "native_notification"
+    private val PREFS_NAME = "app_settings"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -15,8 +17,23 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
 
                 val db = SmsDatabase(this)
+                val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
                 when (call.method) {
+                    "getSettings" -> {
+                        val settings = mapOf(
+                            "isNotificationsEnabled" to prefs.getBoolean("isNotificationsEnabled", true),
+                            "isSoundEnabled" to prefs.getBoolean("isSoundEnabled", true)
+                        )
+                        result.success(settings)
+                    }
+
+                    "updateSetting" -> {
+                        val key = call.argument<String>("key")!!
+                        val value = call.argument<Boolean>("value")!!
+                        prefs.edit().putBoolean(key, value).apply()
+                        result.success(true)
+                    }
 
                     "getSms" -> {
                         val data = db.getUnsynced()
