@@ -1,4 +1,5 @@
 import 'package:expense_tracker/ui/notification/notification_controller.dart';
+import 'package:expense_tracker/utils/components.dart';
 import 'package:expense_tracker/utils/my_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -24,15 +25,64 @@ class NotificationScreen extends StatelessWidget {
               _header(),
               Expanded(
                 child: Obx(() {
-                  return ListView.separated(
-                    padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 10.h),
-                    itemCount: controller.notifications.length,
-                    separatorBuilder: (context, index) => SizedBox(height: 12.h),
-                    itemBuilder: (context, index) {
-                      final notification = controller.notifications[index];
-                      return _buildNotificationItem(notification, () {
-                        controller.markAsRead(index);
-                      });
+                  if (controller.isLoading.value) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (controller.groupedNotifications.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No notifications found',
+                        style: TextStyle(
+                          color: MyTheme.textSecondary,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                    );
+                  }
+
+                  final dates = controller.groupedNotifications.keys.toList();
+
+                  return ListView.builder(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 15.w,
+                      vertical: 0.h,
+                    ),
+                    itemCount: dates.length,
+                    itemBuilder: (context, dateIndex) {
+                      final date = dates[dateIndex];
+                      final items = controller.groupedNotifications[date]!;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              vertical: 12.h,
+                              horizontal: 4.w,
+                            ),
+                            child: Text(
+                              date,
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.bold,
+                                color: MyTheme.textPrimary,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          ...items.map((notification) {
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: 12.h),
+                              child: _buildNotificationItem(
+                                context,
+                                notification,
+                                controller,
+                              ),
+                            );
+                          }),
+                        ],
+                      );
                     },
                   );
                 }),
@@ -49,10 +99,7 @@ class NotificationScreen extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(15.w, 10.h, 15.w, 10.h),
       child: Row(
         children: [
-          _headerAction(
-            Icons.arrow_back_ios_new_rounded,
-            () => Get.back(),
-          ),
+          _headerAction(Icons.arrow_back_ios_new_rounded, () => Get.back()),
           SizedBox(width: 20.w),
           Text(
             'Notifications',
@@ -81,16 +128,22 @@ class NotificationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNotificationItem(NotificationModel notification, VoidCallback onTap) {
+  Widget _buildNotificationItem(
+    BuildContext context,
+    NotificationModel notification,
+    NotificationController controller,
+  ) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => Components.showTransactionDetails(
+        context,
+        notification.fullData,
+        onDelete: () =>
+            controller.deleteNotification(int.parse(notification.id)),
+      ),
+      behavior: HitTestBehavior.opaque,
       child: Container(
         padding: EdgeInsets.all(12.w),
-        decoration: MyTheme.cardDecoration.copyWith(
-          border: notification.isRead
-              ? null
-              : Border.all(color: MyTheme.primary.withOpacity(0.2), width: 1),
-        ),
+        decoration: MyTheme.cardDecoration,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -98,16 +151,12 @@ class NotificationScreen extends StatelessWidget {
               height: 48.w,
               width: 48.w,
               decoration: BoxDecoration(
-                color: notification.isRead
-                    ? MyTheme.background
-                    : MyTheme.primary.withOpacity(0.1),
+                color: MyTheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12.r),
               ),
               child: Icon(
-                notification.isRead
-                    ? Icons.notifications_none_rounded
-                    : Icons.notifications_active_rounded,
-                color: notification.isRead ? MyTheme.textSecondary : MyTheme.primary,
+                Icons.notifications_active_rounded,
+                color: MyTheme.primary,
                 size: 24.w,
               ),
             ),
@@ -131,34 +180,29 @@ class NotificationScreen extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (!notification.isRead)
-                        Container(
-                          width: 8.w,
-                          height: 8.w,
-                          decoration: const BoxDecoration(
-                            color: MyTheme.primary,
-                            shape: BoxShape.circle,
-                          ),
+                      Text(
+                        notification.time,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w500,
+                          color: MyTheme.textSecondary.withOpacity(0.6),
                         ),
+                      ),
                     ],
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    notification.description,
+                    notification.rawMessage.isEmpty
+                        ? "Cash"
+                        : notification.rawMessage,
                     style: TextStyle(
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w500,
                       color: MyTheme.textSecondary,
+                      height: 1.4,
                     ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    notification.time,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w500,
-                      color: MyTheme.textSecondary.withOpacity(0.6),
-                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

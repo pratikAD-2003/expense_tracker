@@ -1,3 +1,4 @@
+import 'package:expense_tracker/services/native_transactions.dart';
 import 'package:expense_tracker/ui/home/home_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -21,6 +22,42 @@ class AddTransactionController extends GetxController {
   ];
   final RxString selectedCategory = "Cash".obs;
   final Rx<DateTime> selectedDate = DateTime.now().obs;
+
+  // For editing
+  Map? editingTransaction;
+
+  @override
+  void onInit() {
+    super.onInit();
+    if (Get.arguments != null && Get.arguments is Map) {
+      editingTransaction = Get.arguments as Map;
+      _setupEditingData();
+    }
+  }
+
+  void _setupEditingData() {
+    if (editingTransaction == null) return;
+
+    amount.value = editingTransaction!['amount'].toString().replaceAll(
+      '.0',
+      '',
+    );
+    selectedType.value =
+        editingTransaction!['type'].toString().capitalizeFirst ?? "Expense";
+    selectedCategory.value = editingTransaction!['category'] ?? "Cash";
+
+    final rawDate = editingTransaction!['dateTime'];
+    if (rawDate != null) {
+      final str = rawDate.toString();
+      if (RegExp(r'^\d+$').hasMatch(str)) {
+        selectedDate.value = DateTime.fromMillisecondsSinceEpoch(
+          int.parse(str),
+        );
+      } else {
+        selectedDate.value = DateTime.tryParse(str) ?? DateTime.now();
+      }
+    }
+  }
 
   String get formattedDate =>
       DateFormat('dd MMM yyyy').format(selectedDate.value);
@@ -68,37 +105,6 @@ class AddTransactionController extends GetxController {
     selectedDate.value = date;
   }
 
-  /*  Future<void> saveTransaction() async {
-    if (amount.value == "0" || amount.value.isEmpty) {
-      Get.snackbar("Error", "Please enter an amount",
-          backgroundColor: Colors.redAccent.withOpacity(0.1),
-          colorText: Colors.redAccent);
-      return;
-    }
-
-    try {
-      final homeController = Get.find<HomeController>();
-
-      final newTx = {
-        "title": selectedCategory.value,
-        "amount": double.parse(amount.value),
-        "type": selectedType.value.toUpperCase(),
-        "category": selectedCategory.value,
-        "dateTime": selectedDate.value.millisecondsSinceEpoch,
-        "isManual": true,
-      };
-
-      // Add to home controller's list
-      homeController.transactions.insert(0, newTx);
-
-      Get.back();
-      Get.snackbar("Success", "Transaction added successfully",
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green);
-    } catch (e) {
-      Get.snackbar("Error", "Failed to save transaction: $e");
-    }
-  }*/
   Future<void> saveTransaction() async {
     if (amount.value == "0" || amount.value.isEmpty) {
       Get.snackbar(
@@ -113,32 +119,51 @@ class AddTransactionController extends GetxController {
     try {
       final homeController = Get.find<HomeController>();
 
-      final newTx = {
-        "id": DateTime.now().millisecondsSinceEpoch,
+      final txData = {
         "title": selectedCategory.value,
         "amount": double.parse(amount.value),
-        "type": selectedType.value.toUpperCase(), // EXPENSE / INCOME
+        "type": selectedType.value.toUpperCase(),
         "category": selectedCategory.value,
         "dateTime": selectedDate.value.millisecondsSinceEpoch.toString(),
-        "source": "MANUAL",
-        "rawSms": "",
+        "source": editingTransaction?['source'] ?? "MANUAL",
+        "rawSms": editingTransaction?['rawSms'] ?? "",
       };
 
-      // ✅ IMPORTANT: add to ORIGINAL list
-      homeController.allTransactions.insert(0, newTx);
+      if (editingTransaction != null) {
+        txData['id'] = editingTransaction!['id'];
+        await NativeTransactions.updateTransaction(txData);
+      } else {
+        final id = await NativeTransactions.addTransaction(txData);
+        txData['id'] = id;
+      }
 
-      // ✅ re-apply filter
-      homeController.applyFilter();
+      await homeController.fetchTransactions();
 
       Get.back();
       Get.snackbar(
         "Success",
-        "Transaction added successfully",
+        editingTransaction != null
+            ? "Transaction updated"
+            : "Transaction added",
         backgroundColor: Colors.green.withOpacity(0.1),
         colorText: Colors.green,
       );
     } catch (e) {
-      Get.snackbar("Error", "Failed to save transaction: $e");
+      Get.snackbar("Error", "Failed to save: $e");
+    }
+  }
+
+  Future<void> deleteTransaction() async {
+    if (editingTransaction == null) return;
+
+    try {
+      await NativeTransactions.deleteTransaction(editingTransaction!['id']);
+      final homeController = Get.find<HomeController>();
+      await homeController.fetchTransactions();
+      Get.back();
+      Get.snackbar("Success", "Deleted");
+    } catch (e) {
+      Get.snackbar("Error", "Failed to delete: $e");
     }
   }
 }

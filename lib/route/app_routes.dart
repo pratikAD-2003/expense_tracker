@@ -9,4 +9,5 @@ class AppRoutes {
   static const String addTransactionScreen = "/addTransactionScreen";
   static const String notificationScreen = "/notificationScreen";
   static const String settingsScreen = "/settingsScreen";
+  static const String transactionHistoryScreen = "/transactionHistoryScreen";
 }

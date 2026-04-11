@@ -1,8 +1,11 @@
+import 'package:expense_tracker/route/app_routes.dart';
 import 'package:expense_tracker/ui/analytics/analytics_controller.dart';
+import 'package:expense_tracker/utils/navigation_helper.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../../utils/my_theme.dart';
 
 class AnalyticsScreen extends StatelessWidget {
@@ -23,21 +26,30 @@ class AnalyticsScreen extends StatelessWidget {
             children: [
               _header(),
               Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      SizedBox(height: 10.h),
-                      _tabBar(),
-                      SizedBox(height: 20.h),
-                      WeeklyExpenseBarChart(),
-                      SizedBox(height: 20.h),
-                      _statsCards(),
-                      SizedBox(height: 20.h),
-                      _historySection(),
-                      SizedBox(height: 80.h),
-                    ],
-                  ),
-                ),
+                child: Obx(() {
+                  if (controller.isLoading.value) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return RefreshIndicator(
+                    onRefresh: () => controller.fetchData(),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        children: [
+                          SizedBox(height: 10.h),
+                          _tabBar(),
+                          SizedBox(height: 20.h),
+                          const AnalyticsBarChart(),
+                          SizedBox(height: 20.h),
+                          _statsCards(),
+                          SizedBox(height: 20.h),
+                          _historySection(),
+                          SizedBox(height: 80.h),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
               ),
             ],
           ),
@@ -49,13 +61,26 @@ class AnalyticsScreen extends StatelessWidget {
   Widget _header() {
     return Padding(
       padding: EdgeInsets.fromLTRB(15.w, 10.h, 15.w, 10.h),
-      child: Text(
-        "Analytics",
-        style: TextStyle(
-          fontSize: 16.sp,
-          fontWeight: FontWeight.bold,
-          color: MyTheme.textPrimary,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            "Analytics",
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: MyTheme.textPrimary,
+            ),
+          ),
+          IconButton(
+            onPressed: () => controller.fetchData(),
+            icon: Icon(
+              Icons.refresh_rounded,
+              color: MyTheme.primary,
+              size: 20.w,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -117,26 +142,30 @@ class AnalyticsScreen extends StatelessWidget {
   Widget _statsCards() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 15.w),
-      child: Row(
-        children: [
-          Expanded(
-            child: _statCard(
-              title: "Income",
-              amount: "₹2,500.00",
-              icon: Icons.arrow_downward_rounded,
-              color: MyTheme.primary,
+      child: Obx(
+        () => Row(
+          children: [
+            Expanded(
+              child: _statCard(
+                title: "Income",
+                amount:
+                    "₹${NumberFormat('#,##,###.##').format(controller.totalIncome.value)}",
+                icon: Icons.arrow_downward_rounded,
+                color: Colors.green,
+              ),
             ),
-          ),
-          SizedBox(width: 15.w),
-          Expanded(
-            child: _statCard(
-              title: "Expense",
-              amount: "₹1,200.00",
-              icon: Icons.arrow_upward_rounded,
-              color: const Color(0xff10B981),
+            SizedBox(width: 15.w),
+            Expanded(
+              child: _statCard(
+                title: "Expense",
+                amount:
+                    "₹${NumberFormat('#,##,###.##').format(controller.totalExpense.value)}",
+                icon: Icons.arrow_upward_rounded,
+                color: Colors.redAccent,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -159,19 +188,20 @@ class AnalyticsScreen extends StatelessWidget {
               color: color.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 20.sp,
-            ),
+            child: Icon(icon, color: color, size: 20.sp),
           ),
           SizedBox(height: 12.h),
-          Text(
-            amount,
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-              color: MyTheme.textPrimary,
+          FittedBox(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              child: Text(
+                amount,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: MyTheme.textPrimary,
+                ),
+              ),
             ),
           ),
           SizedBox(height: 4.h),
@@ -191,252 +221,217 @@ class AnalyticsScreen extends StatelessWidget {
   Widget _historySection() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 15.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "History",
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
-                  color: MyTheme.textPrimary,
-                ),
+      child: Obx(
+        () => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Summary",
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+                color: MyTheme.textPrimary,
               ),
-              IconButton(
-                onPressed: () {},
-                icon: Text(
-                  "See All",
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    color: MyTheme.primary,
-                    decoration: TextDecoration.underline,
-                    decorationColor: MyTheme.primary,
+            ),
+            SizedBox(height: 10.h),
+            if (controller.history.isEmpty)
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 20.h),
+                  child: Text(
+                    "No data available",
+                    style: TextStyle(
+                      color: MyTheme.textSecondary,
+                      fontSize: 12.sp,
+                    ),
                   ),
                 ),
               ),
-            ],
-          ),
-          SizedBox(height: 10.h),
-          ...controller.history.map((item) => _historyItem(item)).toList(),
-        ],
+            ...controller.history.map((item) => _historyItem(item)).toList(),
+          ],
+        ),
       ),
     );
   }
 
   Widget _historyItem(Map<String, dynamic> item) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 10.h),
-      padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
-      decoration: MyTheme.cardDecoration,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            item['date'],
-            style: TextStyle(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w500,
-              color: MyTheme.textSecondary,
+    return InkWell(
+      onTap: () => NavigationHelper.navigateTo(
+        AppRoutes.transactionHistoryScreen,
+        args: item["date"],
+      ),
+      borderRadius: BorderRadius.circular(20.r),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 15.h),
+        decoration: MyTheme.cardDecoration,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              item['date'],
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                color: MyTheme.textPrimary,
+              ),
             ),
-          ),
-          Row(
-            children: [
-              Text(
-                "+₹${item['income']}",
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.bold,
-                  color: MyTheme.primary,
-                ),
-              ),
-              SizedBox(width: 10.w),
-              Text(
-                "-₹${item['expense']}",
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xff10B981),
-                ),
-              ),
-            ],
-          ),
-        ],
+            Row(
+              children: [
+                if (item['income'] > 0)
+                  Text(
+                    "+₹${item['income']}",
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                if (item['income'] > 0 && item['expense'] > 0)
+                  SizedBox(width: 10.w),
+                if (item['expense'] > 0)
+                  Text(
+                    "-₹${item['expense']}",
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class WeeklyExpenseBarChart extends StatelessWidget {
-  const WeeklyExpenseBarChart({super.key});
+class AnalyticsBarChart extends GetView<AnalyticsController> {
+  const AnalyticsBarChart({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 16.w, horizontal: 0.w),
+      padding: EdgeInsets.fromLTRB(10.w, 16.h, 15.w, 10.h),
       margin: EdgeInsets.symmetric(horizontal: 15.w),
       decoration: MyTheme.cardDecoration,
       child: Column(
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    height: 12.h,
-                    width: 12.w,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: MyTheme.primary,
-                    ),
-                  ),
-                  SizedBox(width: 5.w),
-                  Text(
-                    "Income",
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color: MyTheme.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
+              _legendItem("Income", MyTheme.primary),
               SizedBox(width: 10.w),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    height: 12.h,
-                    width: 12.w,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xff10B981),
-                    ),
-                  ),
-                  SizedBox(width: 5.w),
-                  Text(
-                    "Expense",
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color: MyTheme.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(width: 15.w),
+              _legendItem("Expense", const Color(0xff10B981)),
             ],
           ),
-          SizedBox(height: 20.w),
+          SizedBox(height: 20.h),
           SizedBox(
-            height: 150.h,
-            child: BarChart(
-              BarChartData(
-                gridData: FlGridData(show: false),
-                borderData: FlBorderData(show: false),
+            height: 180.h,
+            child: Obx(() {
+              if (controller.chartData.isEmpty) {
+                return const Center(child: Text("No data for chart"));
+              }
+              return BarChart(
+                BarChartData(
+                  gridData: FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          int index = value.toInt();
+                          if (index < 0 || index >= controller.chartData.length)
+                            return const SizedBox();
 
-                // 📅 Bottom Days
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        const days = [
-                          "Mon",
-                          "Tue",
-                          "Wed",
-                          "Thu",
-                          "Fri",
-                          "Sat",
-                          "Sun",
-                        ];
+                          final data = controller.chartData[index];
+                          String label = "";
 
-                        if (value.toInt() < 0 || value.toInt() > 6) {
-                          return const SizedBox();
-                        }
+                          if (controller.selectedPeriod.value == "Week") {
+                            label = DateFormat('E').format(data.date);
+                          } else if (controller.selectedPeriod.value ==
+                              "Today") {
+                            label = "Today";
+                          } else {
+                            // Month - show every 5th day to avoid clutter
+                            if (index % 5 == 0 ||
+                                index == controller.chartData.length - 1) {
+                              label = DateFormat('dd').format(data.date);
+                            }
+                          }
 
-                        return Padding(
-                          padding: EdgeInsets.only(top: 4.h),
-                          child: Text(
-                            days[value.toInt()],
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w500,
-                              color: MyTheme.textSecondary,
+                          return Padding(
+                            padding: EdgeInsets.only(top: 8.h),
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 10.sp,
+                                color: MyTheme.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
-
-                // 👆 Tap → show amount
-                barTouchData: BarTouchData(
-                  enabled: true,
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipColor: (_) => Colors.black87,
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      return BarTooltipItem(
-                        "₹${rod.toY.toInt()}",
-                        const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                  barGroups: controller.chartData.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final data = entry.value;
+                    return BarChartGroupData(
+                      x: index,
+                      barRods: [
+                        BarChartRodData(
+                          toY: data.income,
+                          color: MyTheme.primary,
+                          width: 8.w,
+                          borderRadius: BorderRadius.circular(4.r),
                         ),
-                      );
-                    },
-                  ),
+                        BarChartRodData(
+                          toY: data.expense,
+                          color: const Color(0xff10B981),
+                          width: 8.w,
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 ),
-
-                // 📊 Bars
-                barGroups: [
-                  _bar(0, 200, 150),
-                  _bar(1, 500, 420),
-                  _bar(2, 300, 450),
-                  _bar(3, 700, 300),
-                  _bar(4, 400, 200),
-                  _bar(5, 650, 500),
-                  _bar(6, 450, 350),
-                ],
-              ),
-            ),
+              );
+            }),
           ),
         ],
       ),
     );
   }
 
-  BarChartGroupData _bar(int x, double income, double expense) {
-    return BarChartGroupData(
-      x: x,
-      barsSpace: 4.w,
-      barRods: [
-        BarChartRodData(
-          toY: income,
-          width: 10.w,
-          borderRadius: BorderRadius.circular(4.r),
-          color: MyTheme.primary,
+  Widget _legendItem(String label, Color color) {
+    return Row(
+      children: [
+        Container(
+          height: 8.h,
+          width: 8.w,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
         ),
-        BarChartRodData(
-          toY: expense,
-          width: 10.w,
-          borderRadius: BorderRadius.circular(4.r),
-          color: const Color(0xff10B981),
+        SizedBox(width: 5.w),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w600,
+            color: MyTheme.textSecondary,
+          ),
         ),
       ],
     );

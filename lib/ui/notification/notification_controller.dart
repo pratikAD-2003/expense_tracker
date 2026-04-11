@@ -1,54 +1,110 @@
+import 'package:expense_tracker/services/native_transactions.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 class NotificationModel {
+  final String id;
   final String title;
-  final String description;
   final String time;
-  final bool isRead;
+  final String rawMessage;
+  final DateTime dateTime;
+  final Map fullData;
 
   NotificationModel({
+    required this.id,
     required this.title,
-    required this.description,
     required this.time,
-    this.isRead = false,
+    required this.rawMessage,
+    required this.dateTime,
+    required this.fullData,
   });
 }
 
 class NotificationController extends GetxController {
-  final notifications = <NotificationModel>[
-    NotificationModel(
-      title: 'Monthly Budget Exceeded',
-      description: 'You have exceeded your food budget by \$50.',
-      time: '2 hours ago',
-    ),
-    NotificationModel(
-      title: 'New Transaction',
-      description: 'A transaction of \$120 was added to Entertainment.',
-      time: '5 hours ago',
-      isRead: true,
-    ),
-    NotificationModel(
-      title: 'Bill Reminder',
-      description: 'Your electricity bill is due in 2 days.',
-      time: '1 day ago',
-      isRead: true,
-    ),
-    NotificationModel(
-      title: 'Savings Goal Reached',
-      description: 'Congratulations! You reached your savings goal for this month.',
-      time: '2 days ago',
-      isRead: true,
-    ),
-  ].obs;
+  final notifications = <NotificationModel>[].obs;
+  final groupedNotifications = <String, List<NotificationModel>>{}.obs;
+  final isLoading = false.obs;
 
-  void markAsRead(int index) {
-    // In a real app, this would update the backend/database
-    final notification = notifications[index];
-    notifications[index] = NotificationModel(
-      title: notification.title,
-      description: notification.description,
-      time: notification.time,
-      isRead: true,
-    );
+  @override
+  void onInit() {
+    super.onInit();
+    fetchNotifications();
+  }
+
+  Future<void> fetchNotifications() async {
+    try {
+      isLoading.value = true;
+      final List<Map> data = await NativeTransactions.getTransactions();
+      
+      final List<NotificationModel> fetchedList = data.map((e) {
+        DateTime dt;
+        final rawDate = e['dateTime'];
+        if (rawDate != null) {
+          final str = rawDate.toString();
+          if (RegExp(r'^\d+$').hasMatch(str)) {
+            dt = DateTime.fromMillisecondsSinceEpoch(int.parse(str));
+          } else {
+            dt = DateTime.tryParse(str) ?? DateTime.now();
+          }
+        } else {
+          dt = DateTime.now();
+        }
+
+        // Use category as title (e.g., "Cash", "Food")
+        String displayTitle = e['category'] ?? e['title'] ?? "Transaction";
+
+        return NotificationModel(
+          id: e['id'].toString(),
+          title: displayTitle,
+          time: DateFormat('hh:mm a').format(dt),
+          rawMessage: e['rawSms'] ?? "",
+          dateTime: dt,
+          fullData: e,
+        );
+      }).toList();
+
+      // Sort by date descending
+      fetchedList.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+      
+      notifications.assignAll(fetchedList);
+      _groupNotifications();
+    } catch (e) {
+      print("Error fetching notifications: $e");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void _groupNotifications() {
+    final Map<String, List<NotificationModel>> groups = {};
+    for (var notification in notifications) {
+      final dateStr = _getDateHeader(notification.dateTime);
+      if (groups.containsKey(dateStr)) {
+        groups[dateStr]!.add(notification);
+      } else {
+        groups[dateStr] = [notification];
+      }
+    }
+    groupedNotifications.assignAll(groups);
+  }
+
+  String _getDateHeader(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
+    final notificationDate = DateTime(date.year, date.month, date.day);
+
+    if (notificationDate == today) {
+      return "Today";
+    } else if (notificationDate == yesterday) {
+      return "Yesterday";
+    } else {
+      return DateFormat('dd MMM yyyy').format(date);
+    }
+  }
+
+  Future<void> deleteNotification(int id) async {
+    await NativeTransactions.deleteTransaction(id);
+    fetchNotifications();
   }
 }

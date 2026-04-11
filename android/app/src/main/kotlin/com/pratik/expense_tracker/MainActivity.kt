@@ -24,11 +24,39 @@ class MainActivity : FlutterActivity() {
                     }
 
                     "markSmsSynced" -> {
-
                         val id = call.argument<Int>("id")!!
-
                         db.markSynced(id)
+                        result.success(true)
+                    }
 
+                    "addTransaction" -> {
+                        val type = call.argument<String>("type") ?: ""
+                        val category = call.argument<String>("category") ?: ""
+                        val amount = call.argument<Double>("amount") ?: 0.0
+                        val title = call.argument<String>("title") ?: ""
+                        val dateTime = call.argument<String>("dateTime") ?: ""
+                        val source = call.argument<String>("source") ?: "MANUAL"
+                        val rawSms = call.argument<String>("rawSms") ?: ""
+
+                        val id = db.insertTransaction(type, category, amount, title, dateTime, source, rawSms)
+                        result.success(id.toInt())
+                    }
+
+                    "updateTransaction" -> {
+                        val id = call.argument<Int>("id")!!
+                        val type = call.argument<String>("type") ?: ""
+                        val category = call.argument<String>("category") ?: ""
+                        val amount = call.argument<Double>("amount") ?: 0.0
+                        val title = call.argument<String>("title") ?: ""
+                        val dateTime = call.argument<String>("dateTime") ?: ""
+
+                        db.updateTransaction(id, type, category, amount, title, dateTime)
+                        result.success(true)
+                    }
+
+                    "deleteTransaction" -> {
+                        val id = call.argument<Int>("id")!!
+                        db.deleteTransaction(id)
                         result.success(true)
                     }
 

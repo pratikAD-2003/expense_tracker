@@ -32,20 +32,17 @@ class SmsDatabase(context: Context) :
         newVersion: Int
     ) {
         if (oldVersion < 3) {
-            // Safely add missing columns, exceptions caught if they already exist
             try { db.execSQL("ALTER TABLE transactions ADD COLUMN title TEXT") } catch (e: Exception) {}
             try { db.execSQL("ALTER TABLE transactions ADD COLUMN dateTime TEXT") } catch (e: Exception) {}
             try { db.execSQL("ALTER TABLE transactions ADD COLUMN source TEXT") } catch (e: Exception) {}
             try { db.execSQL("ALTER TABLE transactions ADD COLUMN rawSms TEXT") } catch (e: Exception) {}
 
-            // Map old data to new standard model
             db.execSQL("UPDATE transactions SET title = merchant WHERE title IS NULL AND merchant IS NOT NULL")
             db.execSQL("UPDATE transactions SET title = sender WHERE title IS NULL AND merchant IS NULL")
             db.execSQL("UPDATE transactions SET dateTime = CAST(time AS TEXT) WHERE dateTime IS NULL")
             db.execSQL("UPDATE transactions SET source = 'SMS' WHERE source IS NULL")
             db.execSQL("UPDATE transactions SET rawSms = message WHERE rawSms IS NULL")
             
-            // Map legacy debits/credits
             db.execSQL("UPDATE transactions SET type = 'EXPENSE' WHERE LOWER(type) = 'debit'")
             db.execSQL("UPDATE transactions SET type = 'INCOME' WHERE LOWER(type) = 'credit'")
         }
@@ -59,7 +56,7 @@ class SmsDatabase(context: Context) :
         dateTime: String,
         source: String,
         rawSms: String
-    ) {
+    ): Long {
         val db = writableDatabase
         val values = ContentValues().apply {
             put("type", type)
@@ -71,7 +68,7 @@ class SmsDatabase(context: Context) :
             put("rawSms", rawSms)
             put("synced", 0)
         }
-        db.insertWithOnConflict(
+        return db.insertWithOnConflict(
             "transactions",
             null,
             values,
@@ -79,13 +76,36 @@ class SmsDatabase(context: Context) :
         )
     }
 
+    fun updateTransaction(
+        id: Int,
+        type: String,
+        category: String,
+        amount: Double,
+        title: String,
+        dateTime: String
+    ): Int {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("type", type)
+            put("category", category)
+            put("amount", amount)
+            put("title", title)
+            put("dateTime", dateTime)
+        }
+        return db.update("transactions", values, "id=?", arrayOf(id.toString()))
+    }
+
+    fun deleteTransaction(id: Int): Int {
+        val db = writableDatabase
+        return db.delete("transactions", "id=?", arrayOf(id.toString()))
+    }
+
     fun getUnsynced(): List<Map<String, Any?>> {
         val list = mutableListOf<Map<String, Any?>>()
         val db = readableDatabase
         
-        // Select only the unified finalized columns
         val cursor = db.rawQuery(
-            "SELECT id, type, category, amount, title, dateTime, source, rawSms FROM transactions WHERE synced = 0 ORDER BY id DESC",
+            "SELECT id, type, category, amount, title, dateTime, source, rawSms FROM transactions ORDER BY id DESC",
             null
         )
 

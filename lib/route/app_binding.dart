@@ -2,6 +2,7 @@ import 'package:expense_tracker/ui/add_transaction/add_transaction_screen.dart';
 import 'package:expense_tracker/ui/analytics/analytics_screen.dart';
 import 'package:expense_tracker/ui/notification/notification_screen.dart';
 import 'package:expense_tracker/ui/settings/settings_screen.dart';
+import 'package:expense_tracker/ui/transaction_history/transaction_history_screen.dart';
 import 'package:get/get.dart';
 
 import '../binding.dart';
@@ -40,6 +41,11 @@ class AppBinding {
       name: AppRoutes.notificationScreen,
       page: () => NotificationScreen(),
       binding: NotificationBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.transactionHistoryScreen,
+      page: () => TransactionHistoryScreen(),
+      binding: TransactionHistoryBinding(),
     ),
   ];
 }

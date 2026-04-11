@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:expense_tracker/route/app_routes.dart';
 import 'package:expense_tracker/utils/my_theme.dart';
 import 'package:expense_tracker/utils/navigation_helper.dart';
@@ -9,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../utils/components.dart';
 import 'home_controller.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -29,19 +28,23 @@ class HomeScreen extends StatelessWidget {
             children: [
               _header(),
               Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      SizedBox(height: 10.h),
-                      _tabBar(),
-                      SizedBox(height: 20.h),
-                      _statsWidget(),
-                      SizedBox(height: 20.h),
-                      const WeeklyExpenseBarChart(),
-                      SizedBox(height: 30.h),
-                      _recentTransactions(),
-                      SizedBox(height: 80.h),
-                    ],
+                child: RefreshIndicator(
+                  onRefresh: () => controller.fetchTransactions(),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      children: [
+                        SizedBox(height: 10.h),
+                        _tabBar(),
+                        SizedBox(height: 20.h),
+                        _statsWidget(),
+                        SizedBox(height: 20.h),
+                        const DynamicHomeBarChart(),
+                        SizedBox(height: 30.h),
+                        _recentTransactions(),
+                        SizedBox(height: 80.h),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -129,8 +132,12 @@ class HomeScreen extends StatelessWidget {
                     child: Text(
                       period,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : MyTheme.textSecondary,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        color: isSelected
+                            ? Colors.white
+                            : MyTheme.textSecondary,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.w600,
                         fontSize: 12.sp,
                       ),
                     ),
@@ -161,7 +168,7 @@ class HomeScreen extends StatelessWidget {
         SizedBox(height: 10.h),
         Obx(
           () => Text(
-            "₹${controller.totalSpent.value.toStringAsFixed(2)}",
+            "₹${NumberFormat('#,##,###.##').format(controller.totalSpent.value)}",
             style: TextStyle(
               fontSize: 36.sp,
               fontWeight: FontWeight.bold,
@@ -171,11 +178,11 @@ class HomeScreen extends StatelessWidget {
         ),
         SizedBox(height: 10.h),
         Text(
-          "67% below last month",
+          "Tracking your spending habits",
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF10B981),
+            color: const Color(0xFF10B981),
           ),
         ),
       ],
@@ -199,9 +206,9 @@ class HomeScreen extends StatelessWidget {
                   color: MyTheme.textPrimary,
                 ),
               ),
-              IconButton(
-                onPressed: () {},
-                icon: Text(
+              TextButton(
+                onPressed: () => NavigationHelper.navigateTo(AppRoutes.transactionHistoryScreen),
+                child: Text(
                   "See All",
                   style: TextStyle(
                     fontSize: 12.sp,
@@ -215,103 +222,106 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
-        Obx(
-          () {
-            // Show only first 10 transactions
-            final displayList = controller.transactions.take(10).toList();
-            
-            if (displayList.isEmpty) {
-              return Container(
-                height: 100.h,
-                alignment: Alignment.center,
-                child: Text(
-                  "No transactions for this period",
-                  style: TextStyle(color: MyTheme.textSecondary, fontSize: 13.sp),
-                ),
-              );
-            }
+        Obx(() {
+          final displayList = controller.transactions.take(10).toList();
 
-            return ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 5.h),
-              itemCount: displayList.length,
-              separatorBuilder: (context, index) => SizedBox(height: 12.h),
-              itemBuilder: (context, index) {
-                final tx = displayList[index];
-                return _transactionItem(tx);
-              },
+          if (displayList.isEmpty) {
+            return Container(
+              height: 100.h,
+              alignment: Alignment.center,
+              child: Text(
+                "No transactions for this period",
+                style: TextStyle(color: MyTheme.textSecondary, fontSize: 13.sp),
+              ),
             );
-          },
-        ),
+          }
+
+          return ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 5.h),
+            itemCount: displayList.length,
+            separatorBuilder: (context, index) => SizedBox(height: 12.h),
+            itemBuilder: (context, index) {
+              final tx = displayList[index];
+              return _transactionItem(tx, context);
+            },
+          );
+        }),
       ],
     );
   }
 
-  Widget _transactionItem(Map tx) {
+  Widget _transactionItem(Map tx, BuildContext context) {
     final bool isExpense = tx['type'].toString().toUpperCase() == 'EXPENSE';
     final amount = tx['amount']?.toString() ?? "0.0";
-
-    final dynamic rawTime = tx['dateTime'] ?? tx['time'];
-    final int timeInt = (rawTime is String) ? (int.tryParse(rawTime) ?? 0) : (rawTime as int? ?? 0);
-    final date = DateTime.fromMillisecondsSinceEpoch(timeInt);
-
+    final DateTime date =
+        controller.parseDate(tx['dateTime']) ?? DateTime.now();
     final formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(date);
 
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      decoration: MyTheme.cardDecoration,
-      child: Row(
-        children: [
-          Container(
-            height: 48.w,
-            width: 48.w,
-            decoration: BoxDecoration(
-              color: MyTheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12.r),
+    return InkWell(
+      onTap: () {
+        Components.showTransactionDetails(
+          context,
+          tx,
+          onDelete: () => controller.deleteNotification(tx['id']),
+        );
+      },
+      child: Container(
+        padding: EdgeInsets.all(12.w),
+        decoration: MyTheme.cardDecoration,
+        child: Row(
+          children: [
+            Container(
+              height: 48.w,
+              width: 48.w,
+              decoration: BoxDecoration(
+                color: MyTheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Icon(
+                _getCategoryIcon(tx['category'] ?? ''),
+                color: MyTheme.primary,
+                size: 24.w,
+              ),
             ),
-            child: Icon(
-              _getCategoryIcon(tx['category'] ?? ''),
-              color: MyTheme.primary,
-              size: 24.w,
-            ),
-          ),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tx['title'] ?? tx['merchant'] ?? tx['sender'] ?? "Unknown",
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.bold,
-                    color: MyTheme.textPrimary,
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tx['title'] ?? "Transaction",
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.bold,
+                      color: MyTheme.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  formattedDate,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: MyTheme.textSecondary,
+                  SizedBox(height: 2.h),
+                  Text(
+                    formattedDate,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      color: MyTheme.textSecondary,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Text(
-            "${isExpense ? '-' : '+'} ₹$amount",
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-              color: isExpense ? Colors.redAccent : Colors.green,
+            Text(
+              "${isExpense ? '-' : '+'} ₹$amount",
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+                color: isExpense ? Colors.redAccent : Colors.green,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -326,14 +336,12 @@ class HomeScreen extends StatelessWidget {
         return Icons.qr_code_scanner_rounded;
       case 'BILL':
         return Icons.receipt_long_rounded;
-      case 'RECHARGE':
-        return Icons.phone_android_rounded;
-      case 'SUBSCRIPTION':
-        return Icons.subscriptions_rounded;
-      case 'ATM':
-      case 'CARD':
-        return Icons.credit_card_rounded;
-      case 'OTHERS':
+      case 'TRANSPORT':
+        return Icons.directions_bus_rounded;
+      case 'HEALTH':
+        return Icons.medical_services_rounded;
+      case 'ENTERTAINMENT':
+        return Icons.movie_creation_rounded;
       case 'CASH':
         return Icons.payments_rounded;
       default:
@@ -342,8 +350,8 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class WeeklyExpenseBarChart extends StatelessWidget {
-  const WeeklyExpenseBarChart({super.key});
+class DynamicHomeBarChart extends GetView<HomeController> {
+  const DynamicHomeBarChart({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -352,60 +360,105 @@ class WeeklyExpenseBarChart extends StatelessWidget {
       children: [
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 15.w),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Weekly Analytics",
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
-                  color: MyTheme.textPrimary,
-                ),
+          child: Obx(
+            () => Text(
+              "${controller.selectedPeriod.value} Analytics (${controller.selectedPeriod.value == "Today"
+                  ? "Hour Wise"
+                  : controller.selectedPeriod.value == "Week"
+                  ? "Day Wise"
+                  : "Date Wise"})",
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+                color: MyTheme.textPrimary,
               ),
-              IconButton(
-                onPressed: () {},
-                icon: Text(
-                  "See All",
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    color: MyTheme.primary,
-                    decoration: TextDecoration.underline,
-                    decorationColor: MyTheme.primary,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-        SizedBox(height: 5.h),
+        SizedBox(height: 15.h),
         Container(
-          padding: EdgeInsets.symmetric(vertical: 16.w, horizontal: 0.w),
+          padding: EdgeInsets.fromLTRB(10.w, 20.h, 20.w, 10.h),
           margin: EdgeInsets.symmetric(horizontal: 15.w),
           decoration: MyTheme.cardDecoration,
           child: SizedBox(
-            height: 200.h,
-            child: BarChart(
-              BarChartData(
-                gridData: const FlGridData(show: false),
-                borderData: FlBorderData(show: false),
-                titlesData: const FlTitlesData(show: false),
-                barGroups: List.generate(7, (index) {
-                  return BarChartGroupData(
-                    x: index,
-                    barRods: [
-                      BarChartRodData(
-                        toY: (index + 1) * 10.0 + Random().nextInt(50),
-                        color: MyTheme.primary,
-                        width: 15.w,
-                        borderRadius: BorderRadius.circular(4.r),
+            height: 180.h,
+            child: Obx(() {
+              if (controller.chartData.isEmpty) {
+                return const Center(child: Text("No data available"));
+              }
+              return BarChart(
+                BarChartData(
+                  gridData: const FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          int index = value.toInt();
+                          if (index < 0 || index >= controller.chartData.length) {
+                            return const SizedBox();
+                          }
+
+                          String label = controller.chartData[index].label;
+
+                          // Optimization for Month view to avoid overlap
+                          if (controller.selectedPeriod.value == "Month") {
+                            if (index % 5 != 0 &&
+                                index != controller.chartData.length - 1) {
+                              return const SizedBox();
+                            }
+                          }
+
+                          // Optimization for Today view to avoid overlap
+                          if (controller.selectedPeriod.value == "Today") {
+                            if (index % 4 != 0) return const SizedBox();
+                          }
+
+                          return Padding(
+                            padding: EdgeInsets.only(top: 8.h),
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 9.sp,
+                                color: MyTheme.textSecondary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    ],
-                  );
-                }),
-              ),
-            ),
+                    ),
+                  ),
+                  barGroups: controller.chartData.asMap().entries.map((entry) {
+                    return BarChartGroupData(
+                      x: entry.key,
+                      barRods: [
+                        BarChartRodData(
+                          toY: entry.value.amount,
+                          color: MyTheme.primary,
+                          width: controller.selectedPeriod.value == "Today"
+                              ? 6.w
+                              : controller.selectedPeriod.value == "Week"
+                              ? 14.w
+                              : 4.w,
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              );
+            }),
           ),
         ),
       ],

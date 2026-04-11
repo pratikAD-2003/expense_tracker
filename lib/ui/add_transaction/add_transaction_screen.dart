@@ -69,19 +69,45 @@ class AddTransactionScreen extends StatelessWidget {
           _headerAction(Icons.arrow_back_ios_new_rounded, () => Get.back()),
           SizedBox(width: 20.w),
           Text(
-            "Add Transaction",
+            controller.editingTransaction != null ? "Edit Transaction" : "Add Transaction",
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
               color: MyTheme.textPrimary,
             ),
           ),
+          const Spacer(),
+          if (controller.editingTransaction != null)
+            _headerAction(
+              Icons.delete_outline_rounded,
+              () => _showDeleteConfirmation(),
+              color: Colors.redAccent,
+            ),
         ],
       ),
     );
   }
 
-  Widget _headerAction(IconData icon, VoidCallback onClick) {
+  void _showDeleteConfirmation() {
+    Get.dialog(
+      AlertDialog(
+        title: const Text("Delete Transaction"),
+        content: const Text("Are you sure you want to delete this transaction?"),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              controller.deleteTransaction();
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerAction(IconData icon, VoidCallback onClick, {Color? color}) {
     return InkWell(
       onTap: onClick,
       borderRadius: BorderRadius.circular(14.r),
@@ -90,7 +116,7 @@ class AddTransactionScreen extends StatelessWidget {
         decoration: MyTheme.cardDecoration.copyWith(
           borderRadius: BorderRadius.circular(14.r),
         ),
-        child: Icon(icon, color: MyTheme.textSecondary, size: 20.w),
+        child: Icon(icon, color: color ?? MyTheme.textSecondary, size: 20.w),
       ),
     );
   }
@@ -331,7 +357,6 @@ class AddTransactionScreen extends StatelessWidget {
 
   Widget _keyboardButton(BuildContext context, String label) {
     bool isDelete = label == 'delete';
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return GestureDetector(
       onTap: () => isDelete
@@ -385,7 +410,7 @@ class AddTransactionScreen extends StatelessWidget {
         ),
         child: Center(
           child: Text(
-            'Save Transaction',
+            controller.editingTransaction != null ? 'Update Transaction' : 'Save Transaction',
             style: TextStyle(
               color: Colors.white,
               fontSize: 15.sp,

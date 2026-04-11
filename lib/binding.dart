@@ -4,6 +4,7 @@ import 'package:expense_tracker/ui/bottom_nav/bottom_nav_controller.dart';
 import 'package:expense_tracker/ui/home/home_controller.dart';
 import 'package:expense_tracker/ui/notification/notification_controller.dart';
 import 'package:expense_tracker/ui/settings/settings_controller.dart';
+import 'package:expense_tracker/ui/transaction_history/transaction_history_controller.dart';
 import 'package:get/get.dart';
 
 class HomeBinding extends Bindings {
@@ -41,6 +42,14 @@ class SettingsBinding extends Bindings {
   @override
   void dependencies() {
     Get.put<SettingsController>(SettingsController(), permanent: false);
+  }
+}
+
+
+class TransactionHistoryBinding extends Bindings {
+  @override
+  void dependencies() {
+    Get.put<TransactionHistoryController>(TransactionHistoryController(), permanent: false);
   }
 }
 
