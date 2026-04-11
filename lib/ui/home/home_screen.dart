@@ -67,9 +67,9 @@ class HomeScreen extends StatelessWidget {
             () => NavigationHelper.navigateTo(AppRoutes.settingsScreen),
           ),
           Text(
-            DateFormat('EEE, d MMM yyyy').format(DateTime.now()),
+            "PocketCA",
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: 18.sp,
               fontWeight: FontWeight.bold,
               color: MyTheme.textPrimary,
             ),
@@ -207,7 +207,9 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => NavigationHelper.navigateTo(AppRoutes.transactionHistoryScreen),
+                onPressed: () => NavigationHelper.navigateTo(
+                  AppRoutes.transactionHistoryScreen,
+                ),
                 child: Text(
                   "See All",
                   style: TextStyle(
@@ -405,7 +407,8 @@ class DynamicHomeBarChart extends GetView<HomeController> {
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
                           int index = value.toInt();
-                          if (index < 0 || index >= controller.chartData.length) {
+                          if (index < 0 ||
+                              index >= controller.chartData.length) {
                             return const SizedBox();
                           }
 
