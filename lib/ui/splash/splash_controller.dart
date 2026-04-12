@@ -1,9 +1,6 @@
-import 'package:expense_tracker/services/shared_pref_service.dart';
-import 'package:expense_tracker/ui/bottom_nav/bottom_nav_screen.dart';
-import 'package:expense_tracker/ui/intro/intro_screen.dart';
 import 'package:get/get.dart';
-
 import '../../route/app_routes.dart';
+import '../../services/shared_pref_service.dart';
 import '../../utils/navigation_helper.dart';
 
 class SplashController extends GetxController {
@@ -14,13 +11,13 @@ class SplashController extends GetxController {
   }
 
   Future<void> _checkUserStatus() async {
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(milliseconds: 3000));
     final isNewUser = await SharedPrefService.isNewUser();
 
     if (isNewUser) {
-      NavigationHelper.navigateTo(AppRoutes.introScreen);
+      NavigationHelper.navigateAndClear(AppRoutes.introScreen);
     } else {
-      NavigationHelper.navigateTo(AppRoutes.bottomNavScreen);
+      NavigationHelper.navigateAndClear(AppRoutes.bottomNavScreen);
     }
   }
 }
