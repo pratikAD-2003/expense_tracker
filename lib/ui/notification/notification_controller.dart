@@ -51,7 +51,8 @@ class NotificationController extends GetxController {
         }
 
         // Use category as title (e.g., "Cash", "Food")
-        String displayTitle = e['category'] ?? e['title'] ?? "Transaction";
+        String displayTitle = e['title'] ?? e['category'] ?? "Transaction";
+        // String displayTitle = e['category'] ?? e['title'] ?? "Transaction";
 
         return NotificationModel(
           id: e['id'].toString(),

@@ -22,6 +22,7 @@ class AddTransactionController extends GetxController {
   ];
   final RxString selectedCategory = "Cash".obs;
   final Rx<DateTime> selectedDate = DateTime.now().obs;
+  final RxString title = "".obs;
 
   // For editing
   Map? editingTransaction;
@@ -45,6 +46,7 @@ class AddTransactionController extends GetxController {
     selectedType.value =
         editingTransaction!['type'].toString().capitalizeFirst ?? "Expense";
     selectedCategory.value = editingTransaction!['category'] ?? "Cash";
+    title.value = editingTransaction!['title'] ?? "";
 
     final rawDate = editingTransaction!['dateTime'];
     if (rawDate != null) {
@@ -119,6 +121,10 @@ class AddTransactionController extends GetxController {
     selectedDate.value = date;
   }
 
+  void updateTitle(String newTitle) {
+    title.value = newTitle;
+  }
+
   Future<void> saveTransaction() async {
     if (amount.value == "0" || amount.value.isEmpty) {
       Get.snackbar(
@@ -134,7 +140,7 @@ class AddTransactionController extends GetxController {
       final homeController = Get.find<HomeController>();
 
       final txData = {
-        "title": selectedCategory.value,
+        "title": title.value.isEmpty ? selectedCategory.value : title.value,
         "amount": double.parse(amount.value),
         "type": selectedType.value.toUpperCase(),
         "category": selectedCategory.value,

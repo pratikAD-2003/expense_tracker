@@ -57,6 +57,8 @@ class AddTransactionScreen extends StatelessWidget {
                               SizedBox(height: 15.h),
                               _categorySection(),
                               SizedBox(height: 15.h),
+                              _titleSection(context),
+                              SizedBox(height: 15.h),
                             ],
                           ),
                         ),
@@ -259,6 +261,127 @@ class AddTransactionScreen extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _titleSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () => _showTitleInputDialog(context),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 10.h),
+            decoration: MyTheme.cardDecoration,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.edit_note_rounded,
+                  color: MyTheme.primary,
+                  size: 20.sp,
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Obx(
+                    () => Text(
+                      controller.title.value.isEmpty
+                          ? "Add Title (Optional)"
+                          : controller.title.value,
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w500,
+                        color: controller.title.value.isEmpty
+                            ? MyTheme.textSecondary.withOpacity(0.6)
+                            : MyTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+                if (controller.title.value.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => controller.updateTitle(""),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: Colors.redAccent.withOpacity(0.5),
+                      size: 18.sp,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showTitleInputDialog(BuildContext context) {
+    final textController = TextEditingController(text: controller.title.value);
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        child: Padding(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Transaction Title",
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: MyTheme.textPrimary,
+                ),
+              ),
+              SizedBox(height: 15.h),
+              TextField(
+                controller: textController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: "Enter title here...",
+                  filled: true,
+                  fillColor: MyTheme.background.withOpacity(0.5),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 15.w, vertical: 12.h),
+                ),
+                style: TextStyle(fontSize: 14.sp),
+              ),
+              SizedBox(height: 20.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(color: MyTheme.textSecondary),
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  ElevatedButton(
+                    onPressed: () {
+                      controller.updateTitle(textController.text.trim());
+                      Get.back();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: MyTheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                    ),
+                    child: const Text("Save", style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

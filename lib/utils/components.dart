@@ -41,7 +41,7 @@ class Components {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _detailHeader(
-                  transaction['category'] ?? "Transaction",
+                  transaction['title'] ?? "Transaction",
                   transaction['source'] ?? "MANUAL",
                 ),
                 _amountDisplay(transaction['amount'], isExpense),
