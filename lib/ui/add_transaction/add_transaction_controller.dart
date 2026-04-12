@@ -97,6 +97,20 @@ class AddTransactionController extends GetxController {
     selectedType.value = type;
   }
 
+  void nextType() {
+    int currentIndex = types.indexOf(selectedType.value);
+    if (currentIndex < types.length - 1) {
+      changeType(types[currentIndex + 1]);
+    }
+  }
+
+  void previousType() {
+    int currentIndex = types.indexOf(selectedType.value);
+    if (currentIndex > 0) {
+      changeType(types[currentIndex - 1]);
+    }
+  }
+
   void changeCategory(String category) {
     selectedCategory.value = category;
   }

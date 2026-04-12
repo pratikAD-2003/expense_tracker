@@ -26,30 +26,52 @@ class AnalyticsScreen extends StatelessWidget {
             children: [
               _header(),
               Expanded(
-                child: Obx(() {
-                  if (controller.isLoading.value) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  return RefreshIndicator(
-                    onRefresh: () => controller.fetchData(),
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: Column(
-                        children: [
-                          SizedBox(height: 10.h),
-                          _tabBar(),
-                          SizedBox(height: 20.h),
-                          const AnalyticsBarChart(),
-                          SizedBox(height: 20.h),
-                          _statsCards(),
-                          SizedBox(height: 20.h),
-                          _historySection(),
-                          SizedBox(height: 80.h),
-                        ],
+                child: GestureDetector(
+                  onHorizontalDragEnd: (details) {
+                    if (details.primaryVelocity == null) return;
+                    if (details.primaryVelocity! < 0) {
+                      // Swipe Left -> Next Period
+                      int currentIndex = controller.periods
+                          .indexOf(controller.selectedPeriod.value);
+                      if (currentIndex < controller.periods.length - 1) {
+                        controller
+                            .changePeriod(controller.periods[currentIndex + 1]);
+                      }
+                    } else if (details.primaryVelocity! > 0) {
+                      // Swipe Right -> Previous Period
+                      int currentIndex = controller.periods
+                          .indexOf(controller.selectedPeriod.value);
+                      if (currentIndex > 0) {
+                        controller
+                            .changePeriod(controller.periods[currentIndex - 1]);
+                      }
+                    }
+                  },
+                  child: Obx(() {
+                    if (controller.isLoading.value) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    return RefreshIndicator(
+                      onRefresh: () => controller.fetchData(),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Column(
+                          children: [
+                            SizedBox(height: 10.h),
+                            _tabBar(),
+                            SizedBox(height: 20.h),
+                            const AnalyticsBarChart(),
+                            SizedBox(height: 20.h),
+                            _statsCards(),
+                            SizedBox(height: 20.h),
+                            _historySection(),
+                            SizedBox(height: 80.h),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                }),
+                    );
+                  }),
+                ),
               ),
             ],
           ),
@@ -60,7 +82,7 @@ class AnalyticsScreen extends StatelessWidget {
 
   Widget _header() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(15.w, 10.h, 15.w, 10.h),
+      padding: EdgeInsets.fromLTRB(15.w, 10.h, 15.w, 0.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -87,7 +109,7 @@ class AnalyticsScreen extends StatelessWidget {
 
   Widget _tabBar() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 30.w),
+      margin: EdgeInsets.symmetric(horizontal: 15.w),
       padding: EdgeInsets.all(5.w),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.4),
@@ -126,7 +148,7 @@ class AnalyticsScreen extends StatelessWidget {
                         fontWeight: isSelected
                             ? FontWeight.bold
                             : FontWeight.w600,
-                        fontSize: 12.sp,
+                        fontSize: 11.sp,
                       ),
                     ),
                   ),
@@ -358,13 +380,15 @@ class AnalyticsBarChart extends GetView<AnalyticsController> {
                           final data = controller.chartData[index];
                           String label = "";
 
-                          if (controller.selectedPeriod.value == "Week") {
+                          if (controller.selectedPeriod.value == "1W") {
                             label = DateFormat('E').format(data.date);
                           } else if (controller.selectedPeriod.value ==
                               "Today") {
                             label = "Today";
+                          } else if (controller.selectedPeriod.value == "6M" || controller.selectedPeriod.value == "1Y") {
+                            label = DateFormat('MMM').format(data.date);
                           } else {
-                            // Month - show every 5th day to avoid clutter
+                            // Default / Month - show every 5th day to avoid clutter
                             if (index % 5 == 0 ||
                                 index == controller.chartData.length - 1) {
                               label = DateFormat('dd').format(data.date);
@@ -395,13 +419,13 @@ class AnalyticsBarChart extends GetView<AnalyticsController> {
                         BarChartRodData(
                           toY: data.income,
                           color: MyTheme.primary,
-                          width: 8.w,
+                          width: controller.selectedPeriod.value == "1Y" ? 4.w : 8.w,
                           borderRadius: BorderRadius.circular(4.r),
                         ),
                         BarChartRodData(
                           toY: data.expense,
                           color: const Color(0xff10B981),
-                          width: 8.w,
+                          width: controller.selectedPeriod.value == "1Y" ? 4.w : 8.w,
                           borderRadius: BorderRadius.circular(4.r),
                         ),
                       ],

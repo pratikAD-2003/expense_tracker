@@ -26,27 +26,39 @@ class AddTransactionScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Expanded(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.symmetric(horizontal: 15.w),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 10.h),
-                            _typeSelectionBar(),
-                            SizedBox(height: 20.h),
-                            _amountDisplay(),
-                            SizedBox(height: 20.h),
-
-                            Row(
-                              children: [
-                                Expanded(child: _sectionLabel("Category")),
-                                Expanded(child: _dateSection(context)),
-                              ],
-                            ),
-                            SizedBox(height: 15.h),
-                            _categorySection(),
-                            SizedBox(height: 15.h),
-                          ],
+                      child: GestureDetector(
+                        onHorizontalDragEnd: (details) {
+                          if (details.primaryVelocity == null) return;
+                          if (details.primaryVelocity! < 0) {
+                            // Swipe Left -> Next Type
+                            controller.nextType();
+                          } else if (details.primaryVelocity! > 0) {
+                            // Swipe Right -> Previous Type
+                            controller.previousType();
+                          }
+                        },
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: EdgeInsets.symmetric(horizontal: 15.w),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: 10.h),
+                              _typeSelectionBar(),
+                              SizedBox(height: 20.h),
+                              _amountDisplay(),
+                              SizedBox(height: 20.h),
+                              Row(
+                                children: [
+                                  Expanded(child: _sectionLabel("Category")),
+                                  Expanded(child: _dateSection(context)),
+                                ],
+                              ),
+                              SizedBox(height: 15.h),
+                              _categorySection(),
+                              SizedBox(height: 15.h),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -69,7 +81,9 @@ class AddTransactionScreen extends StatelessWidget {
           _headerAction(Icons.arrow_back_ios_new_rounded, () => Get.back()),
           SizedBox(width: 20.w),
           Text(
-            controller.editingTransaction != null ? "Edit Transaction" : "Add Transaction",
+            controller.editingTransaction != null
+                ? "Edit Transaction"
+                : "Add Transaction",
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
@@ -92,7 +106,8 @@ class AddTransactionScreen extends StatelessWidget {
     Get.dialog(
       AlertDialog(
         title: const Text("Delete Transaction"),
-        content: const Text("Are you sure you want to delete this transaction?"),
+        content:
+            const Text("Are you sure you want to delete this transaction?"),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text("Cancel")),
           TextButton(
@@ -100,7 +115,8 @@ class AddTransactionScreen extends StatelessWidget {
               Get.back();
               controller.deleteTransaction();
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.redAccent)),
+            child:
+                const Text("Delete", style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -156,12 +172,9 @@ class AddTransactionScreen extends StatelessWidget {
                     child: Text(
                       type,
                       style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : MyTheme.textSecondary,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.w600,
+                        color: isSelected ? Colors.white : MyTheme.textSecondary,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w600,
                         fontSize: 12.sp,
                       ),
                     ),
@@ -394,11 +407,14 @@ class AddTransactionScreen extends StatelessWidget {
   Widget _buildSaveButton() {
     return InkWell(
       onTap: () => controller.saveTransaction(),
+      borderRadius: BorderRadius.circular(20.r),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 14.h),
+        padding: EdgeInsets.symmetric(vertical: 15.h),
         decoration: BoxDecoration(
-          color: MyTheme.primary,
+          gradient: LinearGradient(
+            colors: [MyTheme.primary, MyTheme.primary.withOpacity(0.8)],
+          ),
           borderRadius: BorderRadius.circular(20.r),
           boxShadow: [
             BoxShadow(
@@ -410,7 +426,9 @@ class AddTransactionScreen extends StatelessWidget {
         ),
         child: Center(
           child: Text(
-            controller.editingTransaction != null ? 'Update Transaction' : 'Save Transaction',
+            controller.editingTransaction != null
+                ? "Update Transaction"
+                : "Save Transaction",
             style: TextStyle(
               color: Colors.white,
               fontSize: 15.sp,

@@ -11,15 +11,15 @@ class DailyStats {
 }
 
 class AnalyticsController extends GetxController {
-  var selectedPeriod = "Week".obs;
-  final List<String> periods = ["Today", "Week", "Month"];
-  
+  var selectedPeriod = "1W".obs;
+  final List<String> periods = ["Today", "1W", "6M", "1Y"];
+
   var isLoading = true.obs;
   var allTransactions = <Map>[].obs;
-  
+
   var totalIncome = 0.0.obs;
   var totalExpense = 0.0.obs;
-  
+
   var chartData = <DailyStats>[].obs;
   var history = <Map<String, dynamic>>[].obs;
 
@@ -54,83 +54,134 @@ class AnalyticsController extends GetxController {
   void calculateAnalytics() {
     final now = DateTime.now();
     DateTime start;
-    
+    bool isMonthlyGrouping = false;
+
     if (selectedPeriod.value == "Today") {
       start = DateTime(now.year, now.month, now.day);
-    } else if (selectedPeriod.value == "Week") {
-      start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
+    } else if (selectedPeriod.value == "1W") {
+      start = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(const Duration(days: 6));
+    } else if (selectedPeriod.value == "6M") {
+      start = DateTime(now.year, now.month - 5, 1);
+      isMonthlyGrouping = true;
+    } else if (selectedPeriod.value == "1Y") {
+      start = DateTime(now.year - 1, now.month + 1, 1);
+      isMonthlyGrouping = true;
     } else {
       start = DateTime(now.year, now.month, 1);
     }
 
     double income = 0;
     double expense = 0;
-    
-    Map<String, DailyStats> dailyMap = {};
-    
-    // Initialize dailyMap for the chart based on period
-    if (selectedPeriod.value == "Week") {
+
+    Map<String, DailyStats> dataMap = {};
+
+    // Initialize dataMap for the chart based on period
+    if (selectedPeriod.value == "1W") {
       for (int i = 0; i < 7; i++) {
         final date = start.add(Duration(days: i));
         final key = DateFormat('yyyy-MM-dd').format(date);
-        dailyMap[key] = DailyStats(date: date);
+        dataMap[key] = DailyStats(date: date);
       }
     } else if (selectedPeriod.value == "Today") {
-      dailyMap[DateFormat('yyyy-MM-dd').format(now)] = DailyStats(date: now);
+      dataMap[DateFormat('yyyy-MM-dd').format(now)] = DailyStats(date: now);
+    } else if (isMonthlyGrouping) {
+      int monthsCount = selectedPeriod.value == "6M" ? 6 : 12;
+      for (int i = 0; i < monthsCount; i++) {
+        final date = DateTime(start.year, start.month + i, 1);
+        final key = DateFormat('yyyy-MM').format(date);
+        dataMap[key] = DailyStats(date: date);
+      }
     }
 
     for (var tx in allTransactions) {
       final date = _parseDate(tx['dateTime']);
       if (date == null) continue;
-      
+
       if (date.isAfter(start.subtract(const Duration(seconds: 1)))) {
         final double amt = (tx['amount'] as num?)?.toDouble() ?? 0.0;
         final String type = (tx['type'] ?? '').toString().toUpperCase();
-        
+
         if (type == 'EXPENSE') {
           expense += amt;
         } else if (type == 'INCOME') {
           income += amt;
         }
 
-        final key = DateFormat('yyyy-MM-dd').format(date);
-        if (selectedPeriod.value == "Month") {
-          if (!dailyMap.containsKey(key)) {
-            dailyMap[key] = DailyStats(date: date);
-          }
+        String key;
+        if (isMonthlyGrouping) {
+          key = DateFormat('yyyy-MM').format(date);
+        } else {
+          key = DateFormat('yyyy-MM-dd').format(date);
         }
-        
-        if (dailyMap.containsKey(key)) {
+
+        if (dataMap.containsKey(key)) {
           if (type == 'EXPENSE') {
-            dailyMap[key]!.expense += amt;
+            dataMap[key]!.expense += amt;
           } else if (type == 'INCOME') {
-            dailyMap[key]!.income += amt;
+            dataMap[key]!.income += amt;
           }
+        } else if (!isMonthlyGrouping &&
+            selectedPeriod.value != "1W" &&
+            selectedPeriod.value != "Today") {
+          // For any other non-initialized daily views
+          dataMap[key] = DailyStats(
+            date: date,
+            income: type == 'INCOME' ? amt : 0,
+            expense: type == 'EXPENSE' ? amt : 0,
+          );
         }
       }
     }
 
     totalIncome.value = income;
     totalExpense.value = expense;
-    
+
     // Prepare Chart Data
-    var sortedChartData = dailyMap.values.toList();
+    var sortedChartData = dataMap.values.toList();
     sortedChartData.sort((a, b) => a.date.compareTo(b.date));
     chartData.assignAll(sortedChartData);
-    
-    // Prepare History Data (Daily summarized)
-    var sortedHistory = dailyMap.values.where((s) => s.income > 0 || s.expense > 0).toList();
+
+    // Prepare History Data (summarized)
+    var sortedHistory = dataMap.values
+        .where((s) => s.income > 0 || s.expense > 0)
+        .toList();
     sortedHistory.sort((a, b) => b.date.compareTo(a.date));
-    
-    history.assignAll(sortedHistory.map((s) => {
-      "date": DateFormat('dd MMM yyyy').format(s.date),
-      "income": s.income,
-      "expense": s.expense,
-    }).toList());
+
+    history.assignAll(
+      sortedHistory
+          .map(
+            (s) => {
+              "date": isMonthlyGrouping
+                  ? DateFormat('MMM yyyy').format(s.date)
+                  : DateFormat('dd MMM yyyy').format(s.date),
+              "income": s.income,
+              "expense": s.expense,
+            },
+          )
+          .toList(),
+    );
   }
 
   void changePeriod(String period) {
     selectedPeriod.value = period;
     calculateAnalytics();
+  }
+
+  void nextPeriod() {
+    int currentIndex = periods.indexOf(selectedPeriod.value);
+    if (currentIndex < periods.length - 1) {
+      changePeriod(periods[currentIndex + 1]);
+    }
+  }
+
+  void previousPeriod() {
+    int currentIndex = periods.indexOf(selectedPeriod.value);
+    if (currentIndex > 0) {
+      changePeriod(periods[currentIndex - 1]);
+    }
   }
 }

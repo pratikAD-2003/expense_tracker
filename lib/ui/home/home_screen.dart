@@ -28,22 +28,44 @@ class HomeScreen extends StatelessWidget {
             children: [
               _header(),
               Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () => controller.fetchTransactions(),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Column(
-                      children: [
-                        SizedBox(height: 10.h),
-                        _tabBar(),
-                        SizedBox(height: 20.h),
-                        _statsWidget(),
-                        SizedBox(height: 20.h),
-                        const DynamicHomeBarChart(),
-                        SizedBox(height: 30.h),
-                        _recentTransactions(),
-                        SizedBox(height: 80.h),
-                      ],
+                child: GestureDetector(
+                  onHorizontalDragEnd: (details) {
+                    if (details.primaryVelocity == null) return;
+                    if (details.primaryVelocity! < 0) {
+                      // Swipe Left -> Next Period
+                      int currentIndex = controller.periods
+                          .indexOf(controller.selectedPeriod.value);
+                      if (currentIndex < controller.periods.length - 1) {
+                        controller
+                            .changePeriod(controller.periods[currentIndex + 1]);
+                      }
+                    } else if (details.primaryVelocity! > 0) {
+                      // Swipe Right -> Previous Period
+                      int currentIndex = controller.periods
+                          .indexOf(controller.selectedPeriod.value);
+                      if (currentIndex > 0) {
+                        controller
+                            .changePeriod(controller.periods[currentIndex - 1]);
+                      }
+                    }
+                  },
+                  child: RefreshIndicator(
+                    onRefresh: () => controller.fetchTransactions(),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        children: [
+                          SizedBox(height: 10.h),
+                          _tabBar(),
+                          SizedBox(height: 20.h),
+                          _statsWidget(),
+                          SizedBox(height: 20.h),
+                          const DynamicHomeBarChart(),
+                          SizedBox(height: 30.h),
+                          _recentTransactions(),
+                          SizedBox(height: 80.h),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -364,11 +386,7 @@ class DynamicHomeBarChart extends GetView<HomeController> {
           padding: EdgeInsets.symmetric(horizontal: 15.w),
           child: Obx(
             () => Text(
-              "${controller.selectedPeriod.value} Analytics (${controller.selectedPeriod.value == "Today"
-                  ? "Hour Wise"
-                  : controller.selectedPeriod.value == "Week"
-                  ? "Day Wise"
-                  : "Date Wise"})",
+              "${controller.selectedPeriod.value} Analytics (${controller.selectedPeriod.value == "Today" ? "Hour Wise" : controller.selectedPeriod.value == "Week" ? "Day Wise" : "Date Wise"})",
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.bold,
@@ -452,8 +470,8 @@ class DynamicHomeBarChart extends GetView<HomeController> {
                           width: controller.selectedPeriod.value == "Today"
                               ? 6.w
                               : controller.selectedPeriod.value == "Week"
-                              ? 14.w
-                              : 4.w,
+                                  ? 14.w
+                                  : 4.w,
                           borderRadius: BorderRadius.circular(4.r),
                         ),
                       ],
