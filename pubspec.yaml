@@ -19,6 +19,8 @@ dependencies:
   fl_chart: ^0.68.0
   shared_preferences: ^2.5.5
   lottie: ^3.3.3
+  path_provider: ^2.1.5
+  file_picker: ^8.1.7
 
 dev_dependencies:
   flutter_test:

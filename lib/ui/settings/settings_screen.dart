@@ -54,6 +54,44 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                     _buildSettingTile(
+                      icon: Icons.upload_rounded,
+                      title: 'Export Data',
+                      onTap: () => controller.exportData(),
+                      trailing: Obx(() => controller.isExporting.value
+                          ? SizedBox(
+                              width: 20.w,
+                              height: 20.w,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: MyTheme.primary,
+                              ),
+                            )
+                          : Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 14.w,
+                              color: MyTheme.textSecondary,
+                            )),
+                    ),
+                    _buildSettingTile(
+                      icon: Icons.download_rounded,
+                      title: 'Import Data',
+                      onTap: () => controller.importData(),
+                      trailing: Obx(() => controller.isImporting.value
+                          ? SizedBox(
+                              width: 20.w,
+                              height: 20.w,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: MyTheme.primary,
+                              ),
+                            )
+                          : Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 14.w,
+                              color: MyTheme.textSecondary,
+                            )),
+                    ),
+                    _buildSettingTile(
                       icon: Icons.security_outlined,
                       title: 'Privacy & Security',
                       onTap: () {},

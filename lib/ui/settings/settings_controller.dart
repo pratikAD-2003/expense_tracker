@@ -1,3 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:expense_tracker/services/native_transactions.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
@@ -6,6 +11,8 @@ class SettingsController extends GetxController {
 
   var isNotificationsEnabled = true.obs;
   var isSoundEnabled = true.obs;
+  var isExporting = false.obs;
+  var isImporting = false.obs;
 
   @override
   void onInit() {
@@ -17,7 +24,8 @@ class SettingsController extends GetxController {
     try {
       final Map? settings = await _channel.invokeMapMethod('getSettings');
       if (settings != null) {
-        isNotificationsEnabled.value = settings['isNotificationsEnabled'] ?? true;
+        isNotificationsEnabled.value =
+            settings['isNotificationsEnabled'] ?? true;
         isSoundEnabled.value = settings['isSoundEnabled'] ?? true;
       }
     } catch (e) {
@@ -46,6 +54,71 @@ class SettingsController extends GetxController {
       });
     } catch (e) {
       print("Error updating sound setting: $e");
+    }
+  }
+
+  Future<void> exportData() async {
+    try {
+      isExporting.value = true;
+      final transactions = await NativeTransactions.getTransactions();
+
+      if (transactions.isEmpty) {
+        Get.snackbar("Export", "No transactions to export");
+        return;
+      }
+
+      final jsonString = jsonEncode(transactions);
+      final Uint8List bytes = Uint8List.fromList(utf8.encode(jsonString));
+
+      // On Android/iOS, 'bytes' parameter is required for saveFile to work correctly
+      String? selectedPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Select where to save your backup',
+        fileName: 'pocketca_backup_${DateTime.now().millisecondsSinceEpoch}.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        bytes: bytes,
+      );
+
+      if (selectedPath != null) {
+        Get.snackbar("Export Success", "Backup saved successfully");
+      }
+    } catch (e) {
+      Get.snackbar("Export Error", e.toString());
+      print("Export Error $e");
+    } finally {
+      isExporting.value = false;
+    }
+  }
+
+  Future<void> importData() async {
+    try {
+      isImporting.value = true;
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result != null) {
+        File file = File(result.files.single.path!);
+        String content = await file.readAsString();
+        List<dynamic> data = jsonDecode(content);
+
+        int count = 0;
+        for (var item in data) {
+          if (item is Map) {
+            final tx = Map<String, dynamic>.from(item);
+            // Remove ID to let DB generate a new one, or handle duplicates
+            tx.remove('id');
+            await NativeTransactions.addTransaction(tx);
+            count++;
+          }
+        }
+        Get.snackbar("Import Success", "Imported $count transactions");
+      }
+    } catch (e) {
+      Get.snackbar("Import Error", "Failed to import data: $e");
+    } finally {
+      isImporting.value = false;
     }
   }
 }
