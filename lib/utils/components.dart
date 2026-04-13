@@ -158,6 +158,8 @@ class Components {
             fontWeight: FontWeight.bold,
             color: MyTheme.textPrimary,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         SizedBox(height: 4.h),
         Container(
