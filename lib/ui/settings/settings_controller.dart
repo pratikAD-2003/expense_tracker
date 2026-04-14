@@ -5,6 +5,7 @@ import 'package:expense_tracker/services/native_transactions.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsController extends GetxController {
   static const _channel = MethodChannel('native_notification');
@@ -13,6 +14,7 @@ class SettingsController extends GetxController {
   var isSoundEnabled = true.obs;
   var isExporting = false.obs;
   var isImporting = false.obs;
+  var isAutoStartEnabled = false.obs;
 
   @override
   void onInit() {
@@ -28,6 +30,9 @@ class SettingsController extends GetxController {
             settings['isNotificationsEnabled'] ?? true;
         isSoundEnabled.value = settings['isSoundEnabled'] ?? true;
       }
+      
+      final prefs = await SharedPreferences.getInstance();
+      isAutoStartEnabled.value = prefs.getBool('auto_start_granted') ?? false;
     } catch (e) {
       print("Error loading native settings: $e");
     }
@@ -55,6 +60,13 @@ class SettingsController extends GetxController {
     } catch (e) {
       print("Error updating sound setting: $e");
     }
+  }
+
+  Future<void> openAutoStartSettings() async {
+    await NativeTransactions.openAutoStartSettings();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('auto_start_granted', true);
+    isAutoStartEnabled.value = true;
   }
 
   Future<void> exportData() async {

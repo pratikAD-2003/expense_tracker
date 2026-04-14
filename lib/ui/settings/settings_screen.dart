@@ -92,6 +92,11 @@ class SettingsScreen extends StatelessWidget {
                             )),
                     ),
                     _buildSettingTile(
+                      icon: Icons.rocket_launch_rounded,
+                      title: 'Auto Start',
+                      onTap: () => controller.openAutoStartSettings(),
+                    ),
+                    _buildSettingTile(
                       icon: Icons.security_outlined,
                       title: 'Privacy & Security',
                       onTap: () {},

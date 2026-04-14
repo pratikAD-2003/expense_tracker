@@ -44,6 +44,8 @@ class AnalyticsScreen extends StatelessWidget {
                       if (currentIndex > 0) {
                         controller
                             .changePeriod(controller.periods[currentIndex - 1]);
+                      } else {
+                        controller.changeBottomIndex(0);
                       }
                     }
                   },

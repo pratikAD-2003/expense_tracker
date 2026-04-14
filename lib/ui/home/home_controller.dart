@@ -1,4 +1,5 @@
 import 'package:expense_tracker/services/native_transactions.dart';
+import 'package:expense_tracker/ui/bottom_nav/bottom_nav_controller.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
@@ -9,6 +10,11 @@ class HomeChartData {
 }
 
 class HomeController extends GetxController {
+  final btmController = Get.find<BottomNavController>();
+
+  void changeBottomIndex(int index){
+    btmController.selectedIndex.value = index;
+  }
   var allTransactions = <Map>[].obs;
   var transactions = <Map>[].obs;
   var isLoading = true.obs;

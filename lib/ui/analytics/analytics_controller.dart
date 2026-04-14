@@ -2,6 +2,8 @@ import 'package:expense_tracker/services/native_transactions.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../bottom_nav/bottom_nav_controller.dart';
+
 class DailyStats {
   final DateTime date;
   double income;
@@ -11,6 +13,12 @@ class DailyStats {
 }
 
 class AnalyticsController extends GetxController {
+
+  final btmController = Get.find<BottomNavController>();
+
+  void changeBottomIndex(int index){
+    btmController.selectedIndex.value = index;
+  }
   var selectedPeriod = "1W".obs;
   final List<String> periods = ["Today", "1W", "6M", "1Y"];
 

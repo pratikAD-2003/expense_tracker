@@ -38,6 +38,8 @@ class HomeScreen extends StatelessWidget {
                       if (currentIndex < controller.periods.length - 1) {
                         controller
                             .changePeriod(controller.periods[currentIndex + 1]);
+                      } else {
+                        controller.changeBottomIndex(1);
                       }
                     } else if (details.primaryVelocity! > 0) {
                       // Swipe Right -> Previous Period

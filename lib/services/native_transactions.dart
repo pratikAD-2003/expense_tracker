@@ -26,4 +26,8 @@ class NativeTransactions {
   static Future<bool> deleteTransaction(int id) async {
     return await _channel.invokeMethod("deleteTransaction", {"id": id});
   }
+
+  static Future<void> openAutoStartSettings() async {
+    await _channel.invokeMethod("openAutoStartSettings");
+  }
 }

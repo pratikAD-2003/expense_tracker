@@ -56,6 +56,12 @@ class PermissionDialog extends StatelessWidget {
                   granted: controller.battery.value,
                   onTap: controller.requestBatteryOptimization,
                 ),
+                permissionTile(
+                  icon: Icons.settings_power_outlined,
+                  title: "Enable Auto Start",
+                  granted: controller.autoStart.value,
+                  onTap: controller.requestAutoStart,
+                ),
                 const SizedBox(height: 20),
                 if (controller.allGranted)
                   SizedBox(
