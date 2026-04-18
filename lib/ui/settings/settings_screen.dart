@@ -29,8 +29,8 @@ class SettingsScreen extends StatelessWidget {
                     vertical: 10.h,
                   ),
                   children: [
-                    _buildBuyMeCoffeeSection(),
-                    SizedBox(height: 20.h),
+                    // _buildBuyMeCoffeeSection(),
+                    // SizedBox(height: 20.h),
                     Obx(
                       () => _buildSettingTile(
                         icon: Icons.notifications_none_rounded,

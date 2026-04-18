@@ -40,9 +40,11 @@ class Components {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _detailHeader(
-                  transaction['title'] ?? "Transaction",
-                  transaction['source'] ?? "MANUAL",
+                Expanded(
+                  child: _detailHeader(
+                    transaction['title'] ?? "Transaction",
+                    transaction['source'] ?? "MANUAL",
+                  ),
                 ),
                 _amountDisplay(transaction['amount'], isExpense),
               ],
